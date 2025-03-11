@@ -1,0 +1,42 @@
+services:
+    llm-agents-devcontainer:
+        network_mode: host
+        image: llm-agents-devcontainer
+        container_name: llm-agents-devcontainer
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile
+            args:
+                - PYTHON_VERSION
+                - UV_VERSION
+                - DEVCONTAINER_USER
+        volumes:
+            - ..:/workspace:cached
+            - ../resources/:/resources
+        env_file:
+            - ../.secrets/.env
+        # This keeps the devcontainer running.
+        entrypoint: ["tail", "-f", "/dev/null"]
+
+    llm-agents-redis:
+        image: redis:${REDIS_VERSION}
+        container_name: llm-agents-redis
+        ports:
+            - "6379:6379"
+        volumes:
+            - $PWD/resources/cache/redis:/data
+
+    llm-agents-ollama:
+        image: ollama/ollama:${OLLAMA_VERSION}
+        container_name: llm-agents-ollama
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [gpu]
+        ports:
+            - "127.0.0.1:11434:11434"
+        volumes:
+            - $PWD/resources/ollama:/root/.ollama

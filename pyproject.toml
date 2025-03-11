@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.11"
+name = "llm_agents"
+dynamic = ["version", "dependencies"]
+description = "LLM Experts"
+readme = "README.md"
+authors = [{ name = "Bas", email = "bastiansg.bas@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+
+[tool.setuptools.packages.find]
+include = ["llm_agents"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools_scm]
+
+[tool.setuptools.package-data]
+"rage" = ["conf/*"]
