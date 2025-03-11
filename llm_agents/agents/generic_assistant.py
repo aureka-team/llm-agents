@@ -1,12 +1,7 @@
 from pydantic import BaseModel, StrictStr
 
-from common.logger import get_logger
-
 from llm_agents.conf import experts
 from llm_agents.meta.interfaces import LLMAgent
-
-
-logger = get_logger(__name__)
 
 
 class GenericAssistantInput(BaseModel):
