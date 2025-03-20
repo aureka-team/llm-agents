@@ -92,7 +92,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
     def _get_cache_key(
         self,
         agent_input: AgentInput,
-        user_content: UserContent = None,
+        user_content: UserContent,
     ) -> str:
         return joblib.hash(
             f"{joblib.hash(self.conf)}-{joblib.hash(agent_input)}-{joblib.hash(user_content)}"
@@ -105,7 +105,11 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
         pbar: tqdm | None = None,
     ) -> AgentOutput:
         async with self.semaphore:
-            cache_key = self._get_cache_key(agent_input=agent_input)
+            cache_key = self._get_cache_key(
+                agent_input=agent_input,
+                user_content=user_content,
+            )
+
             if self.cache is not None:
                 cached_output = self.cache.load(cache_key=cache_key)
                 if cached_output is not None:
