@@ -127,7 +127,6 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
             except KeyError as e:
                 raise ValueError(f"Missing required field in agent_input: {e}")
 
-            user_content
             agent_run_result = await self.agent.run(
                 user_prompt=[
                     human_prompt,
