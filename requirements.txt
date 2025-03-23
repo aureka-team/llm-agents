@@ -1,7 +1,7 @@
 pydantic>=2.10.6
 pycountry>=24.6.1
-pydantic-extra-types>=2.10.2
+pydantic-extra-types>=2.10.3
 
-pydantic-ai==0.0.36
+pydantic-ai==0.0.43
 
 common @ git+https://github.com/aureka-team/common.git@v1.1.4

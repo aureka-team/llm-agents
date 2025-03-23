@@ -3,6 +3,7 @@ import asyncio
 
 from tqdm import tqdm
 from collections import deque
+from itertools import zip_longest
 from typing import TypeVar, Generic, TypeAlias
 
 
@@ -164,23 +165,33 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
     async def batch_generate(
         self,
         agent_inputs: list[AgentInput],
+        user_contents: list[UserContent] = [],
     ) -> list[AgentOutput]:
+        num_contents = len(user_contents)
+        if num_contents:
+            assert len(agent_inputs) == num_contents, (
+                f"length of agent_inputs and user_contents doesn't match: "
+                f"{len(agent_inputs)} != {num_contents}"
+            )
+
         with tqdm(
             total=len(agent_inputs),
             ascii=" ##",
             colour="#808080",
         ) as pbar:
-            pass
-
             async with asyncio.TaskGroup() as tg:
                 tasks = [
                     tg.create_task(
                         self.generate(
-                            agent_input,
+                            agent_input=agent_input,
+                            user_content=user_content,
                             pbar=pbar,
                         )
                     )
-                    for agent_input in agent_inputs
+                    for agent_input, user_content in zip_longest(
+                        agent_inputs,
+                        user_contents,
+                    )
                 ]
 
             return [task.result() for task in tasks]
