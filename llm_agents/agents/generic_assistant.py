@@ -1,4 +1,4 @@
-from pydantic import BaseModel, StrictStr
+from pydantic import BaseModel, StrictStr, Field
 
 from llm_agents.conf import agents
 from llm_agents.meta.interfaces import LLMAgent
@@ -9,7 +9,9 @@ class GenericAssistantInput(BaseModel):
 
 
 class GenericAssistantOutput(BaseModel):
-    response: StrictStr
+    response: StrictStr = Field(
+        description="Concise and accurate answer to the user's query."
+    )
 
 
 class GenericAssistant(LLMAgent[GenericAssistantInput, GenericAssistantOutput]):

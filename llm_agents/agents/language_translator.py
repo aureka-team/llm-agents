@@ -1,4 +1,4 @@
-from pydantic import BaseModel, StrictStr
+from pydantic import BaseModel, StrictStr, Field
 from pydantic_extra_types.language_code import LanguageName
 
 from common.cache import RedisCache
@@ -14,7 +14,9 @@ class LanguageTranslatorInput(BaseModel):
 
 
 class LanguageTranslatorOutput(BaseModel):
-    translation: StrictStr
+    translation: StrictStr = Field(
+        description="Accurate and context-aware translation of the given text."
+    )
 
 
 class LanguageTranslator(

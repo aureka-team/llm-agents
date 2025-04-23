@@ -1,4 +1,4 @@
-from pydantic import BaseModel, StrictStr
+from pydantic import BaseModel, StrictStr, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 
 from common.cache import RedisCache
@@ -11,7 +11,9 @@ class LanguageDetectorInput(BaseModel):
 
 
 class LanguageDetectorOutput(BaseModel):
-    language: LanguageAlpha2
+    language: LanguageAlpha2 = Field(
+        description="The primary language of the given text."
+    )
 
 
 class LanguageDetector(LLMAgent[LanguageDetectorInput, LanguageDetectorOutput]):

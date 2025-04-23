@@ -1,4 +1,4 @@
-from pydantic import BaseModel, StrictStr
+from pydantic import BaseModel, StrictStr, Field
 
 from common.cache import RedisCache
 
@@ -11,7 +11,9 @@ class ImageDescriberInput(BaseModel):
 
 
 class ImageDescriberOutput(BaseModel):
-    description: StrictStr
+    description: StrictStr = Field(
+        description="Detailed description of the provided image."
+    )
 
 
 class ImageDescriber(LLMAgent[ImageDescriberInput, ImageDescriberOutput]):
