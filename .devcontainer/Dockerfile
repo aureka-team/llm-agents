@@ -4,7 +4,6 @@ FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_source
 FROM ubuntu:noble
 
 ENV UV_SYSTEM_PYTHON=1
-
 ENV REDIS_HOST=llm-agents-redis
 ENV OLLAMA_HOST=llm-agents-ollama
 

@@ -4,4 +4,4 @@ pydantic-extra-types>=2.10.4
 
 pydantic-ai==0.2.5
 
-common @ git+https://github.com/aureka-team/common.git@v1.1.6
+common @ git+https://github.com/aureka-team/common.git@v1.1.8
