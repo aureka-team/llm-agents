@@ -36,16 +36,10 @@ COPY --from=uv_source /uv /uvx /bin/
 WORKDIR /tmp
 
 COPY .devcontainer/requirements.txt .
-RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt --system
+RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
 
 COPY ./requirements.txt requirements.txt
-RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt --system
-
-COPY ./llm_agents /tmp/llm_agents
-COPY ./pyproject.toml /tmp/pyproject.toml
-RUN --mount=type=cache,target=/root/.cache \
-    --mount=source=.git,target=.git,type=bind \
-    uv pip install . --no-deps --system
+RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
 
 RUN rm -rf /tmp/*
 
