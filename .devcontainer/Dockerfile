@@ -5,6 +5,9 @@ FROM ubuntu:noble
 
 ENV UV_SYSTEM_PYTHON=1
 
+ENV REDIS_HOST=llm-agents-redis
+ENV OLLAMA_HOST=llm-agents-ollama
+
 ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \

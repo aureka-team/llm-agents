@@ -25,4 +25,4 @@ dependencies = { file = ["requirements.txt"] }
 [tool.setuptools_scm]
 
 [tool.setuptools.package-data]
-"rage" = ["conf/*"]
+"llm_agents" = ["conf/*"]

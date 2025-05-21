@@ -1,6 +1,5 @@
 services:
     llm-agents-devcontainer:
-        network_mode: host
         image: llm-agents-devcontainer
         container_name: llm-agents-devcontainer
         build:
@@ -10,29 +9,36 @@ services:
             - ..:/workspace:cached
             - ../resources/:/resources
         env_file:
-            - ../.secrets/.env
+            - .env
         # This keeps the devcontainer running.
         entrypoint: ["tail", "-f", "/dev/null"]
+        networks:
+            - llm-agents
 
     llm-agents-redis:
         image: redis:8.0.1
         container_name: llm-agents-redis
-        ports:
-            - "6379:6379"
         volumes:
             - $PWD/resources/cache/redis:/data
+        networks:
+            - llm-agents
 
     llm-agents-ollama:
         image: ollama/ollama:0.7.0
         container_name: llm-agents-ollama
-        deploy:
-            resources:
-                reservations:
-                    devices:
-                        - driver: nvidia
-                          count: 1
-                          capabilities: [gpu]
-        ports:
-            - "127.0.0.1:11434:11434"
+        # deploy:
+        #     resources:
+        #         reservations:
+        #             devices:
+        #                 - driver: nvidia
+        #                   count: 1
+        #                   capabilities: [gpu]
         volumes:
             - $PWD/resources/ollama:/root/.ollama
+        networks:
+            - llm-agents
+
+networks:
+    llm-agents:
+        name: llm-agents
+        driver: bridge

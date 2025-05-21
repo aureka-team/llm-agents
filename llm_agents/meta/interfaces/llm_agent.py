@@ -1,3 +1,4 @@
+import os
 import joblib
 import asyncio
 
@@ -26,6 +27,9 @@ from common.utils.yaml_data import load_yaml
 
 
 logger = get_logger(__name__)
+
+
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
 
 
 AgentInput = TypeVar("AgentInput", bound=BaseModel)
@@ -89,7 +93,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
 
         return OpenAIModel(
             model_name=model.split(":")[1],
-            provider=OpenAIProvider(base_url="http://localhost:11434/v1"),
+            provider=OpenAIProvider(base_url=f"http://{OLLAMA_HOST}:11434/v1"),
         )
 
     def _get_cache_key(
