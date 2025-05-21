@@ -60,6 +60,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
         conf_path: str,
         agent_input: type[BaseModel],
         agent_output: type[BaseModel],
+        retries: int = 1,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         cache: RedisCache | None = None,
@@ -74,6 +75,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
             deps_type=agent_input,
             result_type=agent_output,
             model_settings=self.conf.model_dump(),
+            retries=retries,
         )
 
         self.semaphore = asyncio.Semaphore(max_concurrency)

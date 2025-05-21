@@ -6,10 +6,6 @@ services:
         build:
             context: ..
             dockerfile: .devcontainer/Dockerfile
-            args:
-                - PYTHON_VERSION
-                - UV_VERSION
-                - DEVCONTAINER_USER
         volumes:
             - ..:/workspace:cached
             - ../resources/:/resources
@@ -19,7 +15,7 @@ services:
         entrypoint: ["tail", "-f", "/dev/null"]
 
     llm-agents-redis:
-        image: redis:${REDIS_VERSION}
+        image: redis:8.0.1
         container_name: llm-agents-redis
         ports:
             - "6379:6379"
@@ -27,7 +23,7 @@ services:
             - $PWD/resources/cache/redis:/data
 
     llm-agents-ollama:
-        image: ollama/ollama:${OLLAMA_VERSION}
+        image: ollama/ollama:0.7.0
         container_name: llm-agents-ollama
         deploy:
             resources:

@@ -1,9 +1,11 @@
-ARG UV_VERSION
+ARG UV_VERSION=0.7.6
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_source
 
 FROM ubuntu:noble
 
-ARG PYTHON_VERSION
+ENV UV_SYSTEM_PYTHON=1
+
+ARG PYTHON_VERSION=3.12
 RUN --mount=type=cache,target=/var/cache/apt \
     --mount=target=/var/cache/apt,type=cache,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -45,7 +47,7 @@ RUN --mount=type=cache,target=/root/.cache \
 
 RUN rm -rf /tmp/*
 
-ARG DEVCONTAINER_USER
+ARG DEVCONTAINER_USER=ubuntu
 RUN usermod -aG sudo $DEVCONTAINER_USER \
     && passwd -d $DEVCONTAINER_USER
 
