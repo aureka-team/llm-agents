@@ -39,7 +39,6 @@ UserContent: TypeAlias = ImageUrl | BinaryContent | None
 
 class Config(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
-
     model: StrictStr
     temperature: NonNegativeFloat | None = None
     max_tokens: PositiveInt | None = Field(
@@ -47,8 +46,8 @@ class Config(BaseModel):
         default=None,
     )
 
-    system_prompt: StrictStr | None = Field(
-        alias="system-prompt",
+    system_prompt_template: StrictStr | None = Field(
+        alias="system-prompt-template",
         default=None,
     )
 
@@ -64,6 +63,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
         conf_path: str,
         agent_input: type[BaseModel],
         agent_output: type[BaseModel],
+        system_prompt_params: dict = {},
         retries: int = 1,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
@@ -73,9 +73,17 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
         self.cache = cache
 
         self.conf = Config(**load_yaml(file_path=conf_path))
+        model_settings = self.conf.model_dump()
+        system_prompt = self._get_system_prompt(
+            system_prompt_params=system_prompt_params
+        )
+
+        logger.info(f"model_settings: {model_settings}")
+        logger.info(f"system_prompt: {system_prompt}")
+
         self.agent = Agent(
             model=self.get_agent_model(model=self.conf.model),
-            system_prompt=self.conf.system_prompt,
+            system_prompt=system_prompt,
             deps_type=agent_input,
             result_type=agent_output,
             model_settings=self.conf.model_dump(),
@@ -84,6 +92,17 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
 
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.message_history = deque(maxlen=message_history_length)
+
+    def _get_system_prompt(self, system_prompt_params: dict) -> str:
+        try:
+            return self.conf.system_prompt_template.format(
+                **system_prompt_params
+            )
+
+        except KeyError as e:
+            raise ValueError(
+                f"Missing required system_prompt field in agent_input: {e}"
+            )
 
     @staticmethod
     def get_agent_model(model: str) -> str | OpenAIModel:
@@ -131,7 +150,9 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
                 )
 
             except KeyError as e:
-                raise ValueError(f"Missing required field in agent_input: {e}")
+                raise ValueError(
+                    f"Missing required human_prompt field in agent_input: {e}"
+                )
 
             agent_run_result = await self.agent.run(
                 user_prompt=[
