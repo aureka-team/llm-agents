@@ -3,7 +3,7 @@ model: google-gla:gemini-2.0-flash-001
 max-tokens: 1024
 temperature: 0.0
 
-system-prompt-template: |-
+system-prompt: |-
     You are an Image-to-Text Analyst,
     an AI specializing in creating highly detailed and contextually rich descriptions of images.
 
