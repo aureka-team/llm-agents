@@ -53,6 +53,11 @@ class Config(BaseModel):
     )
 
 
+class MissingInstructionsTemplateError(Exception):
+    def __init__(self):
+        super().__init__("instructions_template is required when deps are set.")
+
+
 class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def __init__(
         self,
@@ -84,12 +89,12 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         @self.agent.instructions
         def get_instructions(ctx: RunContext[AgentDeps]) -> str | None:
             instructions_template = self.conf.instructions_template
-            if instructions_template is None:
-                return
-
             deps = ctx.deps
             if deps is None:
                 return instructions_template
+
+            if instructions_template is None:
+                raise MissingInstructionsTemplateError()
 
             return instructions_template.format(**deps.model_dump())
 
