@@ -7,21 +7,18 @@ from llm_agents.conf import agents
 from llm_agents.meta.interfaces import LLMAgent
 
 
-class LanguageTranslatorInput(BaseModel):
-    text: StrictStr
+class LanguageTranslatorDeps(BaseModel):
     source_language: LanguageName
     target_language: LanguageName
 
 
 class LanguageTranslatorOutput(BaseModel):
-    translation: StrictStr = Field(
-        description="Accurate and context-aware translation of the given text."
-    )
+    translation: StrictStr = Field(description="Translation of the given text.")
 
 
 class LanguageTranslator(
     LLMAgent[
-        LanguageTranslatorInput,
+        LanguageTranslatorDeps,
         LanguageTranslatorOutput,
     ]
 ):
@@ -33,8 +30,8 @@ class LanguageTranslator(
     ):
         super().__init__(
             conf_path=conf_path,
-            agent_input=LanguageTranslatorInput,
-            agent_output=LanguageTranslatorOutput,
+            deps_type=LanguageTranslatorDeps,
+            output_type=LanguageTranslatorOutput,
             max_concurrency=max_concurrency,
             cache=cache,
         )

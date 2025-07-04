@@ -7,8 +7,8 @@ from collections import deque
 from itertools import zip_longest
 from typing import TypeVar, Generic, TypeAlias
 
-
-from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPServer
+from pydantic_ai import Agent, Tool, RunContext
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.messages import ImageUrl, BinaryContent
@@ -32,9 +32,9 @@ logger = get_logger(__name__)
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
 
 
-AgentInput = TypeVar("AgentInput", bound=BaseModel)
+AgentDeps = TypeVar("AgentDeps", bound=BaseModel)
 AgentOutput = TypeVar("AgentOutput", bound=BaseModel)
-UserContent: TypeAlias = ImageUrl | BinaryContent | None
+UserContent: TypeAlias = ImageUrl | BinaryContent
 
 
 class Config(BaseModel):
@@ -47,23 +47,20 @@ class Config(BaseModel):
         default=None,
     )
 
-    system_prompt: StrictStr | None = Field(
-        alias="system-prompt",
-        default=None,
-    )
-
-    human_prompt_template: StrictStr | None = Field(
-        alias="human-prompt-template",
+    instructions_template: StrictStr | None = Field(
+        alias="instructions-template",
         default=None,
     )
 
 
-class LLMAgent(Generic[AgentInput, AgentOutput]):
+class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def __init__(
         self,
         conf_path: str,
-        agent_input: type[BaseModel],
-        agent_output: type[BaseModel],
+        output_type: type[BaseModel],
+        deps_type: type[BaseModel] | None = None,
+        tools: list[Tool] = [],
+        mcp_servers: list[MCPServer] = [],
         retries: int = 1,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
@@ -75,12 +72,26 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
         self.conf = Config(**load_yaml(file_path=conf_path))
         self.agent = Agent(
             model=self.get_agent_model(model=self.conf.model),
-            system_prompt=self.conf.system_prompt,
-            deps_type=agent_input,
-            result_type=agent_output,
+            output_type=output_type,
+            deps_type=deps_type,
+            name=self.__class__.__name__,
             model_settings=self.conf.model_dump(),
             retries=retries,
+            tools=tools,
+            mcp_servers=mcp_servers,
         )
+
+        @self.agent.instructions
+        def get_instructions(ctx: RunContext[AgentDeps]) -> str | None:
+            instructions_template = self.conf.instructions_template
+            if instructions_template is None:
+                return
+
+            deps = ctx.deps
+            if deps is None:
+                return instructions_template
+
+            return instructions_template.format(**deps.model_dump())
 
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.message_history = deque(maxlen=message_history_length)
@@ -98,22 +109,23 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
 
     def _get_cache_key(
         self,
-        agent_input: AgentInput,
-        user_content: UserContent,
+        user_prompt: str,
+        agent_deps: AgentDeps | None = None,
+        user_content: UserContent | None = None,
     ) -> str:
-        return joblib.hash(
-            f"{joblib.hash(self.conf)}-{joblib.hash(agent_input)}-{joblib.hash(user_content)}"
-        )
+        return joblib.hash((user_prompt, agent_deps, user_content))
 
     async def generate(
         self,
-        agent_input: AgentInput,
-        user_content: UserContent = None,
+        user_prompt: str,
+        agent_deps: AgentDeps | None = None,
+        user_content: UserContent | None = None,
         pbar: tqdm | None = None,
     ) -> AgentOutput:
         async with self.semaphore:
             cache_key = self._get_cache_key(
-                agent_input=agent_input,
+                user_prompt=user_prompt,
+                agent_deps=agent_deps,
                 user_content=user_content,
             )
 
@@ -125,21 +137,18 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
 
                     return cached_output
 
-            try:
-                human_prompt = self.conf.human_prompt_template.format(
-                    **agent_input.model_dump()
-                )
-
-            except KeyError as e:
-                raise ValueError(f"Missing required field in agent_input: {e}")
-
-            agent_run_result = await self.agent.run(
-                user_prompt=[
-                    human_prompt,
+            user_prompt = (
+                [
+                    user_prompt,
                     user_content,
                 ]
                 if user_content is not None
-                else human_prompt,
+                else user_prompt
+            )
+
+            agent_run_result = await self.agent.run(
+                user_prompt=user_prompt,
+                deps=agent_deps,
                 message_history=list(self.message_history)
                 if self.message_history
                 else None,
@@ -155,7 +164,7 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
                 }
             )
 
-            agent_output = agent_run_result.data
+            agent_output = agent_run_result.output
             if self.cache is not None:
                 self.cache.save(
                     obj=agent_output,
@@ -169,18 +178,28 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
 
     async def batch_generate(
         self,
-        agent_inputs: list[AgentInput],
+        user_prompts: list[str],
+        agent_deps_list: list[AgentDeps] = [],
         user_contents: list[UserContent] = [],
     ) -> list[AgentOutput]:
+        num_user_prompts = len(user_prompts)
+
+        num_deps = len(agent_deps_list)
+        if num_deps:
+            assert num_user_prompts == num_deps, (
+                f"length of user_prompts and agent_deps doesn't match: "
+                f"{num_user_prompts} != {num_deps}"
+            )
+
         num_contents = len(user_contents)
         if num_contents:
-            assert len(agent_inputs) == num_contents, (
-                f"length of agent_inputs and user_contents doesn't match: "
-                f"{len(agent_inputs)} != {num_contents}"
+            assert num_user_prompts == num_contents, (
+                f"length of user_prompts and user_contents doesn't match: "
+                f"{num_user_prompts} != {num_contents}"
             )
 
         with tqdm(
-            total=len(agent_inputs),
+            total=len(user_prompts),
             ascii=" ##",
             colour="#808080",
         ) as pbar:
@@ -188,13 +207,15 @@ class LLMAgent(Generic[AgentInput, AgentOutput]):
                 tasks = [
                     tg.create_task(
                         self.generate(
-                            agent_input=agent_input,
+                            user_prompt=user_prompt,
+                            agent_deps=agent_deps,
                             user_content=user_content,
                             pbar=pbar,
                         )
                     )
-                    for agent_input, user_content in zip_longest(
-                        agent_inputs,
+                    for user_prompt, agent_deps, user_content in zip_longest(
+                        user_prompts,
+                        agent_deps_list,
                         user_contents,
                     )
                 ]
