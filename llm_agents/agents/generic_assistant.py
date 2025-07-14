@@ -4,17 +4,13 @@ from llm_agents.conf import agents
 from llm_agents.meta.interfaces import LLMAgent
 
 
-class GenericAssistantInput(BaseModel):
-    user_query: StrictStr
-
-
 class GenericAssistantOutput(BaseModel):
     response: StrictStr = Field(
         description="Concise and accurate answer to the user's query."
     )
 
 
-class GenericAssistant(LLMAgent[GenericAssistantInput, GenericAssistantOutput]):
+class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
     def __init__(
         self,
         conf_path: str = f"{agents.__path__[0]}/generic-assistant.yaml",
@@ -22,7 +18,6 @@ class GenericAssistant(LLMAgent[GenericAssistantInput, GenericAssistantOutput]):
     ):
         super().__init__(
             conf_path=conf_path,
-            agent_input=GenericAssistantInput,
-            agent_output=GenericAssistantOutput,
+            output_type=GenericAssistantOutput,
             message_history_length=message_history_length,
         )
