@@ -9,14 +9,14 @@ services:
             - ..:/workspace:cached
             - ../resources/:/resources
         env_file:
-            - .env
+            - ../.env
         # This keeps the devcontainer running.
         entrypoint: ["tail", "-f", "/dev/null"]
         networks:
             - llm-agents
 
     llm-agents-redis:
-        image: redis:8.0.2
+        image: redis:8.0.3
         container_name: llm-agents-redis
         volumes:
             - $PWD/resources/cache/redis:/data
