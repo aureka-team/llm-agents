@@ -3,6 +3,7 @@ import joblib
 import asyncio
 
 from tqdm import tqdm
+from typing import Callable
 from collections import deque
 from itertools import zip_longest
 from typing import TypeVar, Generic, TypeAlias
@@ -69,6 +70,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         retries: int = 1,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
+        history_processors: list[Callable] | None = None,
         cache: RedisCache | None = None,
     ):
         self.max_concurrency = max_concurrency
@@ -84,6 +86,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             retries=retries,
             tools=tools,
             mcp_servers=mcp_servers,
+            history_processors=history_processors,
         )
 
         @self.agent.instructions
