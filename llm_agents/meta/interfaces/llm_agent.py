@@ -8,6 +8,7 @@ from collections import deque
 from itertools import zip_longest
 from typing import TypeVar, Generic, TypeAlias
 
+from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai import Agent, Tool, RunContext
 from pydantic_ai.models.openai import OpenAIModel
@@ -18,7 +19,6 @@ from pydantic import (
     StrictStr,
     PositiveInt,
     NonNegativeFloat,
-    Field,
     ConfigDict,
 )
 
@@ -43,15 +43,8 @@ class Config(BaseModel):
 
     model: StrictStr
     temperature: NonNegativeFloat | None = None
-    max_tokens: PositiveInt | None = Field(
-        alias="max-tokens",
-        default=None,
-    )
-
-    instructions_template: StrictStr | None = Field(
-        alias="instructions-template",
-        default=None,
-    )
+    max_tokens: PositiveInt | None = None
+    instructions_template: StrictStr | None = None
 
 
 class MissingInstructionsTemplateError(Exception):
@@ -65,6 +58,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         conf_path: str,
         output_type: type[BaseModel],
         deps_type: type[BaseModel] | None = None,
+        model: Model | None = None,
         tools: list[Tool] = [],
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
@@ -77,8 +71,15 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self.cache = cache
 
         self.conf = Config(**load_yaml(file_path=conf_path))
+
+        model = (
+            model
+            if model is not None
+            else self.get_agent_model(model=self.conf.model)
+        )
+
         self.agent = Agent(
-            model=self.get_agent_model(model=self.conf.model),
+            model=model,
             output_type=output_type,
             deps_type=deps_type,
             name=self.__class__.__name__,

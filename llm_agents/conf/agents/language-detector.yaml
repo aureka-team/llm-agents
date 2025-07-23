@@ -1,7 +1,7 @@
 model: openai:gpt-4.1-mini-2025-04-14
 # model: google-gla:gemini-2.0-flash-001
-max-tokens: 32
+max_tokens: 32
 temperature: 0.0
-instructions-template: |-
+instructions_template: |-
     You are a professional linguist and multilingual text analyst.
-    Your task is to identify the primary language of a given text and provide its ISO 639 code.
+    Your task is to identify the primary language of a given text and provide its ISO 639-1 code.

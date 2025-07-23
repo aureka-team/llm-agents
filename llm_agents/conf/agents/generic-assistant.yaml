@@ -1,9 +1,9 @@
 model: openai:gpt-4.1-mini-2025-04-14
 # model: google-gla:gemini-2.0-flash-001
 # model: ollama:llama3.2
-max-tokens: 256
+max_tokens: 256
 temperature: 0.7
 
-instructions-template: >-
+instructions_template: >-
     As a very helpful and knowledgeable assistant, provide the best possible answer to the given user's query.
     Ensure that the response is clear, concise, and directly addresses the user's query.
