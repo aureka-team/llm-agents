@@ -1,3 +1,4 @@
+from pydantic_ai.models import Model
 from pydantic import BaseModel, StrictStr, Field
 
 from llm_agents.conf import agents
@@ -13,11 +14,13 @@ class GenericAssistantOutput(BaseModel):
 class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
     def __init__(
         self,
-        conf_path: str = f"{agents.__path__[0]}/generic-assistant.yaml",
+        conf_path: str = f"{list(agents.__path__)[0]}/generic-assistant.yaml",
+        model: Model | None = None,
         message_history_length: int = 10,
     ):
         super().__init__(
             conf_path=conf_path,
             output_type=GenericAssistantOutput,
+            model=model,
             message_history_length=message_history_length,
         )

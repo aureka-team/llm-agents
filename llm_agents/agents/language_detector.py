@@ -15,7 +15,7 @@ class LanguageDetectorOutput(BaseModel):
 class LanguageDetector(LLMAgent[None, LanguageDetectorOutput]):
     def __init__(
         self,
-        conf_path=f"{agents.__path__[0]}/language-detector.yaml",
+        conf_path: str = f"{list(agents.__path__)[0]}/language-detector.yaml",
         max_concurrency: int = 10,
         cache: RedisCache | None = None,
     ):

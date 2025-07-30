@@ -15,9 +15,9 @@ class ImageDescriberOutput(BaseModel):
 class ImageDescriber(LLMAgent[None, ImageDescriberOutput]):
     def __init__(
         self,
-        conf_path=f"{agents.__path__[0]}/image-describer.yaml",
+        conf_path=f"{list(agents.__path__)[0]}/image-describer.yaml",
         max_concurrency: int = 10,
-        cache: RedisCache = None,
+        cache: RedisCache | None = None,
     ):
         super().__init__(
             conf_path=conf_path,

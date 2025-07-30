@@ -73,7 +73,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self.conf = Config(**load_yaml(file_path=conf_path))
 
         model = (
-            model
+            model  # type: ignore
             if model is not None
             else self.get_agent_model(model=self.conf.model)
         )
@@ -86,11 +86,11 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             model_settings=self.conf.model_dump(),
             retries=retries,
             tools=tools,
-            mcp_servers=mcp_servers,
+            mcp_servers=mcp_servers,  # type: ignore
             history_processors=history_processors,
         )
 
-        @self.agent.instructions
+        @self.agent.instructions  # type: ignore
         def get_instructions(ctx: RunContext[AgentDeps]) -> str | None:
             instructions_template = self.conf.instructions_template
             deps = ctx.deps
@@ -122,7 +122,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         agent_deps: AgentDeps | None = None,
         user_content: UserContent | None = None,
     ) -> str:
-        return joblib.hash((user_prompt, agent_deps, user_content))
+        return joblib.hash((user_prompt, agent_deps, user_content))  # type: ignore
 
     async def generate(
         self,
@@ -148,7 +148,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
 
             user_prompt = (
                 [
-                    user_prompt,
+                    user_prompt,  # type: ignore
                     user_content,
                 ]
                 if user_content is not None
@@ -156,7 +156,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             )
 
             agent_run_result = await self.agent.run(
-                user_prompt=user_prompt,
+                user_prompt=user_prompt,  # type: ignore
                 deps=agent_deps,
                 message_history=list(self.message_history)
                 if self.message_history
