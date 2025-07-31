@@ -1,3 +1,4 @@
+from pydantic_ai import ToolOutput
 from pydantic_ai.models import Model
 from pydantic import BaseModel, StrictStr, Field
 
@@ -20,7 +21,7 @@ class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
     ):
         super().__init__(
             conf_path=conf_path,
-            output_type=GenericAssistantOutput,
+            output_type=ToolOutput(GenericAssistantOutput),
             model=model,
             message_history_length=message_history_length,
         )

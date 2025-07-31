@@ -1,3 +1,4 @@
+from pydantic_ai import ToolOutput
 from pydantic import BaseModel, StrictStr, Field
 
 from common.cache import RedisCache
@@ -21,7 +22,7 @@ class ImageDescriber(LLMAgent[None, ImageDescriberOutput]):
     ):
         super().__init__(
             conf_path=conf_path,
-            output_type=ImageDescriberOutput,
+            output_type=ToolOutput(ImageDescriberOutput),
             max_concurrency=max_concurrency,
             cache=cache,
         )

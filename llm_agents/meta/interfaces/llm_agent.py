@@ -10,7 +10,15 @@ from typing import TypeVar, Generic, TypeAlias
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
-from pydantic_ai import Agent, Tool, RunContext
+from pydantic_ai import (
+    Agent,
+    Tool,
+    RunContext,
+    ToolOutput,
+    NativeOutput,
+    PromptedOutput,
+)
+
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.messages import ImageUrl, BinaryContent
@@ -56,7 +64,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def __init__(
         self,
         conf_path: str,
-        output_type: type[BaseModel],
+        output_type: ToolOutput | NativeOutput | PromptedOutput,
         deps_type: type[BaseModel] | None = None,
         model: Model | None = None,
         tools: list[Tool] = [],
@@ -69,7 +77,6 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
     ):
         self.max_concurrency = max_concurrency
         self.cache = cache
-
         self.conf = Config(**load_yaml(file_path=conf_path))
 
         model = (
@@ -156,8 +163,8 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             )
 
             agent_run_result = await self.agent.run(
-                user_prompt=user_prompt,  # type: ignore
-                deps=agent_deps,
+                user_prompt=user_prompt,
+                deps=agent_deps,  # type: ignore
                 message_history=list(self.message_history)
                 if self.message_history
                 else None,

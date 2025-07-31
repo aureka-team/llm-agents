@@ -1,3 +1,4 @@
+from pydantic_ai import ToolOutput
 from pydantic import BaseModel, StrictStr, Field
 from pydantic_extra_types.language_code import LanguageName
 
@@ -31,7 +32,7 @@ class LanguageTranslator(
         super().__init__(
             conf_path=conf_path,
             deps_type=LanguageTranslatorDeps,
-            output_type=LanguageTranslatorOutput,
+            output_type=ToolOutput(LanguageTranslatorOutput),
             max_concurrency=max_concurrency,
             cache=cache,
         )
