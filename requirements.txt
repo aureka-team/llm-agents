@@ -2,7 +2,7 @@ pydantic>=2.11.7
 pycountry>=24.6.1
 pydantic-extra-types>=2.10.5
 
-logfire==3.25.0
-pydantic-ai==0.4.9
+logfire==4.1.0
+pydantic-ai==0.5.0
 
 common @ git+https://github.com/aureka-team/common.git@v1.1.8

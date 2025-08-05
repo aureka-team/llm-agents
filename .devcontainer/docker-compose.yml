@@ -24,15 +24,15 @@ services:
             - llm-agents
 
     llm-agents-ollama:
-        image: ollama/ollama:0.9.6
+        image: ollama/ollama:0.10.1
         container_name: llm-agents-ollama
-        # deploy:
-        #     resources:
-        #         reservations:
-        #             devices:
-        #                 - driver: nvidia
-        #                   count: 1
-        #                   capabilities: [gpu]
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: 1
+                          capabilities: [gpu]
         volumes:
             - $PWD/resources/ollama:/root/.ollama
         networks:

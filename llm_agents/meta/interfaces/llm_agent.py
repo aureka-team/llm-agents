@@ -19,8 +19,6 @@ from pydantic_ai import (
     PromptedOutput,
 )
 
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.messages import ImageUrl, BinaryContent
 from pydantic import (
     BaseModel,
@@ -49,7 +47,7 @@ UserContent: TypeAlias = ImageUrl | BinaryContent
 class Config(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
-    model: StrictStr
+    model: StrictStr | None = None
     temperature: NonNegativeFloat | None = None
     max_tokens: PositiveInt | None = None
     instructions_template: StrictStr | None = None
@@ -60,13 +58,18 @@ class MissingInstructionsTemplateError(Exception):
         super().__init__("instructions_template is required when deps are set.")
 
 
+class MissingModelError(Exception):
+    def __init__(self):
+        super().__init__("Model is required but was not provided.")
+
+
 class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def __init__(
         self,
         conf_path: str,
         output_type: ToolOutput | NativeOutput | PromptedOutput,
         deps_type: type[BaseModel] | None = None,
-        model: Model | None = None,
+        model: Model | str | None = None,
         tools: list[Tool] = [],
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
@@ -79,11 +82,9 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self.cache = cache
         self.conf = Config(**load_yaml(file_path=conf_path))
 
-        model = (
-            model  # type: ignore
-            if model is not None
-            else self.get_agent_model(model=self.conf.model)
-        )
+        model = model if model is not None else self.conf.model
+        if model is None:
+            raise MissingModelError()
 
         self.agent = Agent(
             model=model,
@@ -111,17 +112,6 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
 
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.message_history = deque(maxlen=message_history_length)
-
-    @staticmethod
-    def get_agent_model(model: str) -> str | OpenAIModel:
-        model_type = model.split(":")[0]
-        if model_type != "ollama":
-            return model
-
-        return OpenAIModel(
-            model_name=model.split(":")[1],
-            provider=OpenAIProvider(base_url=f"http://{OLLAMA_HOST}:11434/v1"),
-        )
 
     def _get_cache_key(
         self,
