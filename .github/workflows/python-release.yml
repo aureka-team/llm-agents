@@ -51,7 +51,7 @@ jobs:
                   gh release view index --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
                     gh release create index \
                       --repo "$GITHUB_REPOSITORY" \
-                      --title "common index" \
+                      --title "index" \
                       --notes "All released wheels for pip/uv --find-links" \
                       --latest=false
 
