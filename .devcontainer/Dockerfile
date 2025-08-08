@@ -35,6 +35,7 @@ WORKDIR /tmp
 COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
 
+COPY uv.toml .
 COPY ./requirements.txt requirements.txt
 RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
 

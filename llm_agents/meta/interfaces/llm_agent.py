@@ -3,9 +3,9 @@ import joblib
 import asyncio
 
 from tqdm import tqdm
-from typing import Callable
 from collections import deque
 from itertools import zip_longest
+from typing import Callable, Literal
 from typing import TypeVar, Generic, TypeAlias
 
 from pydantic_ai.models import Model
@@ -39,15 +39,21 @@ logger = get_logger(__name__)
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
 
 
-AgentDeps = TypeVar("AgentDeps", bound=BaseModel)
+AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
 AgentOutput = TypeVar("AgentOutput", bound=BaseModel)
 UserContent: TypeAlias = ImageUrl | BinaryContent
+
+
+class Reasoning(BaseModel):
+    effort: Literal["minimal"]
 
 
 class Config(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     model: StrictStr | None = None
+    verbosity: Literal["low", "medium", "high"] = "low"
+    reasoning: Reasoning | None = None
     temperature: NonNegativeFloat | None = None
     max_tokens: PositiveInt | None = None
     instructions_template: StrictStr | None = None
@@ -91,7 +97,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             output_type=output_type,
             deps_type=deps_type,
             name=self.__class__.__name__,
-            model_settings=self.conf.model_dump(),
+            model_settings=self.conf.model_dump(exclude_unset=True),
             retries=retries,
             tools=tools,
             mcp_servers=mcp_servers,  # type: ignore
@@ -108,7 +114,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             if instructions_template is None:
                 raise MissingInstructionsTemplateError()
 
-            return instructions_template.format(**deps.model_dump())
+            return instructions_template.format(**deps.model_dump())  # type: ignore
 
         self.semaphore = asyncio.Semaphore(max_concurrency)
         self.message_history = deque(maxlen=message_history_length)
