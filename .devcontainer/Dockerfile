@@ -35,9 +35,11 @@ WORKDIR /tmp
 COPY .devcontainer/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
 
-COPY uv.toml .
 COPY ./requirements.txt requirements.txt
-RUN --mount=type=cache,target=/root/.cache uv pip install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache \
+    uv pip install \
+    --find-links https://github.com/aureka-team/common/releases/expanded_assets/index \
+    -r requirements.txt
 
 RUN rm -rf /tmp/*
 
