@@ -4,6 +4,7 @@ from pydantic import BaseModel, StrictStr, Field
 
 from llm_agents.conf import agents
 from llm_agents.meta.interfaces import LLMAgent
+from llm_agents.message_history import MongoDBMessageHistory
 
 
 class GenericAssistantOutput(BaseModel):
@@ -18,10 +19,12 @@ class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
         conf_path: str = f"{list(agents.__path__)[0]}/generic-assistant.yaml",
         model: Model | None = None,
         message_history_length: int = 10,
+        mongodb_message_history: MongoDBMessageHistory | None = None,
     ):
         super().__init__(
             conf_path=conf_path,
             output_type=ToolOutput(GenericAssistantOutput),
             model=model,
             message_history_length=message_history_length,
+            mongodb_message_history=mongodb_message_history,
         )

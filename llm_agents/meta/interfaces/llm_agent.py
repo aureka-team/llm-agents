@@ -1,12 +1,9 @@
-import os
 import joblib
 import asyncio
 
 from tqdm import tqdm
-from collections import deque
 from itertools import zip_longest
-from typing import Callable, Literal
-from typing import TypeVar, Generic, TypeAlias
+from typing import TypeVar, Generic, TypeAlias, Literal
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
@@ -19,7 +16,13 @@ from pydantic_ai import (
     PromptedOutput,
 )
 
-from pydantic_ai.messages import ImageUrl, BinaryContent
+from pydantic_ai.messages import (
+    ImageUrl,
+    BinaryContent,
+    ModelMessage,
+    ToolReturnPart,
+)
+
 from pydantic import (
     BaseModel,
     StrictStr,
@@ -32,11 +35,10 @@ from common.cache import RedisCache
 from common.logger import get_logger
 from common.utils.yaml_data import load_yaml
 
+from llm_agents.message_history import MongoDBMessageHistory
+
 
 logger = get_logger(__name__)
-
-
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost")
 
 
 AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
@@ -81,12 +83,15 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         retries: int = 1,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
-        history_processors: list[Callable] | None = None,
+        mongodb_message_history: MongoDBMessageHistory | None = None,
         cache: RedisCache | None = None,
     ):
         self.max_concurrency = max_concurrency
+        self.message_history_length = message_history_length
+
         self.cache = cache
         self.conf = Config(**load_yaml(file_path=conf_path))
+        self.mongodb_message_history = mongodb_message_history
 
         model = model if model is not None else self.conf.model
         if model is None:
@@ -101,7 +106,6 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             retries=retries,
             tools=tools,
             mcp_servers=mcp_servers,  # type: ignore
-            history_processors=history_processors,
         )
 
         @self.agent.instructions  # type: ignore
@@ -116,8 +120,35 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
 
             return instructions_template.format(**deps.model_dump())  # type: ignore
 
+        self.message_history = []
+        if self.mongodb_message_history is not None:
+            messages = self.mongodb_message_history.get_messages()
+            self.add_history_messages(messages=messages)
+
         self.semaphore = asyncio.Semaphore(max_concurrency)
-        self.message_history = deque(maxlen=message_history_length)
+
+    def add_history_messages(self, messages: list[ModelMessage]) -> None:
+        if not len(messages):
+            return
+
+        if self.message_history_length == 0:
+            return
+
+        self.message_history.extend(messages)
+        if len(self.message_history) <= self.message_history_length:
+            return
+
+        new_first_element = self.message_history[-self.message_history_length]
+        if not isinstance(new_first_element.parts[0], ToolReturnPart):
+            self.message_history = self.message_history[
+                -self.message_history_length :
+            ]
+
+            return
+
+        self.message_history = self.message_history[
+            -(self.message_history_length + 1) :
+        ]
 
     def _get_cache_key(
         self,
@@ -166,15 +197,10 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
                 else None,
             )
 
-            self.message_history.extend(agent_run_result.new_messages())
-            usage = agent_run_result.usage()
-
-            logger.debug(
-                {
-                    "request_tokens": usage.request_tokens,
-                    "response_tokens": usage.response_tokens,
-                }
-            )
+            new_messages = agent_run_result.new_messages()
+            self.add_history_messages(messages=new_messages)
+            if self.mongodb_message_history is not None:
+                self.mongodb_message_history.add_messages(messages=new_messages)
 
             agent_output = agent_run_result.output
             if self.cache is not None:

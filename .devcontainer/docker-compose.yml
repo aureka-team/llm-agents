@@ -23,6 +23,23 @@ services:
         networks:
             - llm-agents
 
+    llm-agents-mongo:
+        image: mongo:8.0.12
+        container_name: llm-agents-mongo
+        ports:
+            - "27017:27017"
+        command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+        volumes:
+            - $PWD/resources/db/mongo/db:/data/db:z
+        deploy:
+            resources:
+                limits:
+                    cpus: "1"
+                    memory: 320M
+        restart: unless-stopped
+        networks:
+            - llm-agents
+
     llm-agents-ollama:
         image: ollama/ollama:0.10.1
         container_name: llm-agents-ollama
