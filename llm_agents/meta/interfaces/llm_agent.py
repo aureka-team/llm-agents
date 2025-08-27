@@ -84,6 +84,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         mongodb_message_history: MongoDBMessageHistory | None = None,
+        read_only_message_history: bool = False,
         cache: RedisCache | None = None,
     ):
         self.max_concurrency = max_concurrency
@@ -92,6 +93,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self.cache = cache
         self.conf = Config(**load_yaml(file_path=conf_path))
         self.mongodb_message_history = mongodb_message_history
+        self.read_only_message_history = read_only_message_history
 
         model = model if model is not None else self.conf.model
         if model is None:
@@ -197,10 +199,13 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
                 else None,
             )
 
-            new_messages = agent_run_result.new_messages()
-            self.add_history_messages(messages=new_messages)
-            if self.mongodb_message_history is not None:
-                self.mongodb_message_history.add_messages(messages=new_messages)
+            if not self.read_only_message_history:
+                new_messages = agent_run_result.new_messages()
+                self.add_history_messages(messages=new_messages)
+                if self.mongodb_message_history is not None:
+                    self.mongodb_message_history.add_messages(
+                        messages=new_messages
+                    )
 
             agent_output = agent_run_result.output
             if self.cache is not None:
