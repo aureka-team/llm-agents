@@ -41,7 +41,8 @@ class MongoDBMessageHistory:
 
     def ensure_index(self) -> None:
         indexes = self.db[self.mongo_collection].index_information()
-        if "session_date_idx" in indexes:
+        index_name = "session_date_idx"
+        if index_name in indexes:
             return
 
         self.db[self.mongo_collection].create_index(
@@ -49,7 +50,7 @@ class MongoDBMessageHistory:
                 ("session_id", 1),
                 ("date", -1),
             ],
-            name="session_date_idx",
+            name=index_name,
         )
 
     def add_messages(self, messages: list[ModelMessage]) -> None:
