@@ -21,7 +21,7 @@ class MongoDBMessageHistory:
         session_id: str,
         mongo_dsn: str = MONGO_DSN,
         mongo_database: str = MONGO_DATABASE,
-        mongo_collection: str = "message-history",
+        mongo_collection: str = "message_history",
     ):
         self.client = MongoClient(
             mongo_dsn,
