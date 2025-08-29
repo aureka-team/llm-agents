@@ -11,10 +11,8 @@ from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelMessage
 logger = get_logger(__name__)
 
 
-MONGO_DSN = os.getenv(
-    "MONGO_DSN",
-    "mongodb://lupai-mongo:27017",
-)
+MONGO_DSN = os.getenv("MONGO_DSN", "mongodb://lupai-mongo:27017")
+MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm-agents")
 
 
 class MongoDBMessageHistory:
@@ -22,7 +20,7 @@ class MongoDBMessageHistory:
         self,
         session_id: str,
         mongo_dsn: str = MONGO_DSN,
-        mongo_database: str = "llm-agents",
+        mongo_database: str = MONGO_DATABASE,
         mongo_collection: str = "message-history",
     ):
         self.client = MongoClient(
