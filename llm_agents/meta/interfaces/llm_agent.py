@@ -54,7 +54,8 @@ class Config(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     model: StrictStr | None = None
-    verbosity: Literal["low", "medium", "high"] = "low"
+    openai_reasoning_effort: Literal["minimal", "low", "medium", "high"] = "low"
+    openai_text_verbosity: Literal["low", "medium", "high"] = "medium"
     reasoning: Reasoning | None = None
     temperature: NonNegativeFloat | None = None
     max_tokens: PositiveInt | None = None

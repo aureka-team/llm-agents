@@ -4,7 +4,7 @@ pydantic-extra-types>=2.10.5
 pymongo>=4.14.1
 
 logfire==4.3.6
-pydantic-ai==0.7.6
+pydantic-ai==0.8.1
 
 # Aureka packages
 common>=1.1.10
