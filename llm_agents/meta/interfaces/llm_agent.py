@@ -7,6 +7,7 @@ from typing import TypeVar, Generic, TypeAlias, Literal
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
+from pydantic_ai.settings import ModelSettings
 from pydantic_ai import (
     Agent,
     Tool,
@@ -77,7 +78,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self,
         conf_path: str,
         output_type: ToolOutput | NativeOutput | PromptedOutput,
-        deps_type: type[BaseModel] | None = None,
+        deps_type: type[BaseModel] = type(None),
         model: Model | str | None = None,
         tools: list[Tool] = [],
         mcp_servers: list[MCPServer] = [],
@@ -102,26 +103,17 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
 
         self.agent = Agent(
             model=model,
+            instructions=self.get_instructions,
             output_type=output_type,
             deps_type=deps_type,
             name=self.__class__.__name__,
-            model_settings=self.conf.model_dump(exclude_unset=True),
+            model_settings=ModelSettings(
+                **self.conf.model_dump(exclude_unset=True)
+            ),
             retries=retries,
             tools=tools,
-            mcp_servers=mcp_servers,  # type: ignore
+            toolsets=mcp_servers,
         )
-
-        @self.agent.instructions  # type: ignore
-        def get_instructions(ctx: RunContext[AgentDeps]) -> str | None:
-            instructions_template = self.conf.instructions_template
-            deps = ctx.deps
-            if deps is None:
-                return instructions_template
-
-            if instructions_template is None:
-                raise MissingInstructionsTemplateError()
-
-            return instructions_template.format(**deps.model_dump())  # type: ignore
 
         self.message_history = []
         if self.mongodb_message_history is not None:
@@ -129,6 +121,17 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             self.add_history_messages(messages=messages)
 
         self.semaphore = asyncio.Semaphore(max_concurrency)
+
+    def get_instructions(self, ctx: RunContext[AgentDeps]) -> str | None:
+        instructions_template = self.conf.instructions_template
+        deps = ctx.deps
+        if deps is None:
+            return instructions_template
+
+        if instructions_template is None:
+            raise MissingInstructionsTemplateError()
+
+        return instructions_template.format(**deps.model_dump())  # type: ignore
 
     def add_history_messages(self, messages: list[ModelMessage]) -> None:
         if not len(messages):
@@ -156,15 +159,18 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def _get_cache_key(
         self,
         user_prompt: str,
-        agent_deps: AgentDeps | None = None,
+        agent_deps: BaseModel | None = None,
         user_content: UserContent | None = None,
     ) -> str:
-        return joblib.hash((user_prompt, agent_deps, user_content))  # type: ignore
+        cache_key = joblib.hash((user_prompt, agent_deps, user_content))
+        assert cache_key is not None
+
+        return cache_key
 
     async def generate(
         self,
         user_prompt: str,
-        agent_deps: AgentDeps | None = None,
+        agent_deps: BaseModel | None = None,
         user_content: UserContent | None = None,
         pbar: tqdm | None = None,
     ) -> AgentOutput:
@@ -183,9 +189,9 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
 
                     return cached_output
 
-            user_prompt = (
+            user_prompt_ = (
                 [
-                    user_prompt,  # type: ignore
+                    user_prompt,
                     user_content,
                 ]
                 if user_content is not None
@@ -193,7 +199,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             )
 
             agent_run_result = await self.agent.run(
-                user_prompt=user_prompt,
+                user_prompt=user_prompt_,
                 deps=agent_deps,  # type: ignore
                 message_history=list(self.message_history)
                 if self.message_history
