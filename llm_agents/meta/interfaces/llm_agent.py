@@ -88,11 +88,13 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         mongodb_message_history: MongoDBMessageHistory | None = None,
         read_only_message_history: bool = False,
         cache: RedisCache | None = None,
+        cache_key_suffix: str | None = None,
     ):
         self.max_concurrency = max_concurrency
         self.message_history_length = message_history_length
 
         self.cache = cache
+        self.cache_key_suffix = cache_key_suffix
         self.conf = Config(**load_yaml(file_path=conf_path))
         self.mongodb_message_history = mongodb_message_history
         self.read_only_message_history = read_only_message_history
@@ -162,7 +164,9 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         agent_deps: BaseModel | None = None,
         user_content: UserContent | None = None,
     ) -> str:
-        cache_key = joblib.hash((user_prompt, agent_deps, user_content))
+        cache_key = joblib.hash(
+            (user_prompt, agent_deps, user_content, self.cache_key_suffix)
+        )
         assert cache_key is not None
 
         return cache_key
