@@ -1,6 +1,8 @@
-model: openai:gpt-5-nano-2025-08-07
-openai_reasoning_effort: minimal
-openai_text_verbosity: low
+# model: gpt-4.1-mini-2025-04-14
+model: gemini-3-flash-preview
+# model: openai:gpt-5.1-2025-11-13
+# openai_reasoning_effort: none
+# openai_text_verbosity: low
 
 instructions_template: |-
     You are a professional linguist and multilingual text analyst.

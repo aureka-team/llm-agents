@@ -1,4 +1,4 @@
-ARG UV_VERSION=0.9.5
+ARG UV_VERSION=0.9.25
 FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv_source
 
 FROM ubuntu:plucky
