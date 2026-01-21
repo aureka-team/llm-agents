@@ -3,7 +3,7 @@ import asyncio
 
 from tqdm import tqdm
 from itertools import zip_longest
-from typing import TypeVar, Generic, TypeAlias, Literal
+from typing import TypeVar, Generic, TypeAlias, Literal, Any
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
@@ -16,6 +16,7 @@ from pydantic_ai import (
     NativeOutput,
     PromptedOutput,
     UsageLimits,
+    EventStreamHandler,
 )
 
 from pydantic_ai.messages import (
@@ -87,6 +88,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
         usage_limits: UsageLimits | None = None,
+        event_stream_handler: EventStreamHandler[Any] | None = None,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         mongodb_message_history: MongoDBMessageHistory | None = None,
@@ -127,6 +129,8 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             self.add_history_messages(messages=messages)
 
         self.usage_limits = usage_limits
+        self.event_stream_handler = event_stream_handler
+
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
     def get_instructions(self, ctx: RunContext[AgentDeps]) -> str | None:
@@ -211,6 +215,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
                 user_prompt=user_prompt_,
                 deps=agent_deps,  # type: ignore
                 usage_limits=self.usage_limits,
+                event_stream_handler=self.event_stream_handler,
                 message_history=list(self.message_history)
                 if self.message_history
                 else None,
