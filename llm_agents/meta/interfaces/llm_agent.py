@@ -15,6 +15,7 @@ from pydantic_ai import (
     ToolOutput,
     NativeOutput,
     PromptedOutput,
+    UsageLimits,
 )
 
 from pydantic_ai.messages import (
@@ -80,11 +81,12 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         self,
         conf_path: str,
         output_type: ToolOutput | NativeOutput | PromptedOutput,
-        deps_type: type[BaseModel] = type(None),
+        deps_type: type[BaseModel] = type(None),  # type: ignore
         model: Model | str | None = None,
         tools: list[Tool] = [],
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
+        usage_limits: UsageLimits | None = None,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         mongodb_message_history: MongoDBMessageHistory | None = None,
@@ -109,7 +111,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             model=model,
             instructions=self.get_instructions,
             output_type=output_type,
-            deps_type=deps_type,
+            deps_type=deps_type,  # type: ignore
             name=self.__class__.__name__,
             model_settings=ModelSettings(
                 **self.conf.model_dump(exclude_unset=True)
@@ -124,6 +126,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             messages = self.mongodb_message_history.get_messages()
             self.add_history_messages(messages=messages)
 
+        self.usage_limits = usage_limits
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
     def get_instructions(self, ctx: RunContext[AgentDeps]) -> str | None:
@@ -207,6 +210,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             agent_run_result = await self.agent.run(
                 user_prompt=user_prompt_,
                 deps=agent_deps,  # type: ignore
+                usage_limits=self.usage_limits,
                 message_history=list(self.message_history)
                 if self.message_history
                 else None,
@@ -230,7 +234,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             if pbar is not None:
                 pbar.update(1)
 
-            return agent_output
+            return agent_output  # type: ignore
 
     async def batch_generate(
         self,
