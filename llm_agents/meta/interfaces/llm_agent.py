@@ -1,16 +1,14 @@
-import json
 import joblib
 import asyncio
 
 from tqdm import tqdm
 from itertools import zip_longest
-from typing import TypeVar, Generic, TypeAlias, Literal, Any, AsyncIterator
+from typing import TypeVar, Generic, TypeAlias, Literal, Any
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.agent import EventStreamHandler
-from pydantic_ai.messages import AgentStreamEvent
 from pydantic_ai.tools import ToolsPrepareFunc
 from pydantic_ai import (
     Agent,
@@ -20,7 +18,6 @@ from pydantic_ai import (
     NativeOutput,
     PromptedOutput,
     UsageLimits,
-    FunctionToolCallEvent,
 )
 
 from pydantic_ai.messages import (
@@ -79,20 +76,6 @@ class MissingInstructionsTemplateError(Exception):
 class MissingModelError(Exception):
     def __init__(self):
         super().__init__("Model is required but was not provided.")
-
-
-async def tool_logging_handler(
-    run_context: RunContext[Any],
-    stream: AsyncIterator[AgentStreamEvent],
-) -> None:
-    async for event in stream:
-        if isinstance(event, FunctionToolCallEvent):
-            logger.info(
-                {
-                    "tool": event.part.tool_name,
-                    "args": json.loads(event.part.args),  # type: ignore
-                }
-            )
 
 
 class LLMAgent(Generic[AgentDeps, AgentOutput]):
