@@ -1,4 +1,4 @@
-from pydantic_ai import ToolOutput
+from pydantic_ai import Tool, ToolOutput
 from pydantic_ai.models import Model
 from pydantic import BaseModel, StrictStr, Field
 
@@ -20,11 +20,13 @@ class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
         model: Model | None = None,
         message_history_length: int = 10,
         mongodb_message_history: MongoDBMessageHistory | None = None,
+        tools: list[Tool] = [],
     ):
         super().__init__(
             conf_path=conf_path,
-            output_type=ToolOutput(GenericAssistantOutput),
+            output_type=ToolOutput(GenericAssistantOutput),  # type: ignore
             model=model,
             message_history_length=message_history_length,
             mongodb_message_history=mongodb_message_history,
+            tools=tools,
         )

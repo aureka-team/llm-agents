@@ -1,13 +1,16 @@
+import json
 import joblib
 import asyncio
 
 from tqdm import tqdm
 from itertools import zip_longest
-from typing import TypeVar, Generic, TypeAlias, Literal, Any
+from typing import TypeVar, Generic, TypeAlias, Literal, Any, AsyncIterator
 
 from pydantic_ai.models import Model
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai.settings import ModelSettings
+from pydantic_ai.agent import EventStreamHandler
+from pydantic_ai.messages import AgentStreamEvent
 from pydantic_ai import (
     Agent,
     Tool,
@@ -16,7 +19,7 @@ from pydantic_ai import (
     NativeOutput,
     PromptedOutput,
     UsageLimits,
-    EventStreamHandler,
+    FunctionToolCallEvent,
 )
 
 from pydantic_ai.messages import (
@@ -77,6 +80,20 @@ class MissingModelError(Exception):
         super().__init__("Model is required but was not provided.")
 
 
+async def tool_logging_handler(
+    run_context: RunContext[Any],
+    stream: AsyncIterator[AgentStreamEvent],
+) -> None:
+    async for event in stream:
+        if isinstance(event, FunctionToolCallEvent):
+            logger.info(
+                {
+                    "tool": event.part.tool_name,
+                    "args": json.loads(event.part.args),  # type: ignore
+                }
+            )
+
+
 class LLMAgent(Generic[AgentDeps, AgentOutput]):
     def __init__(
         self,
@@ -88,7 +105,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
         usage_limits: UsageLimits | None = None,
-        event_stream_handler: EventStreamHandler[Any] | None = None,
+        event_stream_handler: EventStreamHandler | None = None,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         mongodb_message_history: MongoDBMessageHistory | None = None,
@@ -109,11 +126,11 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         if model is None:
             raise MissingModelError()
 
-        self.agent = Agent(
+        self.agent = Agent(  # type: ignore
             model=model,
             instructions=self.get_instructions,
             output_type=output_type,
-            deps_type=deps_type,  # type: ignore
+            deps_type=deps_type,
             name=self.__class__.__name__,
             model_settings=ModelSettings(
                 **self.conf.model_dump(exclude_unset=True)
@@ -211,9 +228,9 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
                 else user_prompt
             )
 
-            agent_run_result = await self.agent.run(
+            agent_run_result = await self.agent.run(  # type: ignore
                 user_prompt=user_prompt_,
-                deps=agent_deps,  # type: ignore
+                deps=agent_deps,
                 usage_limits=self.usage_limits,
                 event_stream_handler=self.event_stream_handler,
                 message_history=list(self.message_history)
