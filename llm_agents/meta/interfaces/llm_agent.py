@@ -11,6 +11,7 @@ from pydantic_ai.mcp import MCPServer
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.agent import EventStreamHandler
 from pydantic_ai.messages import AgentStreamEvent
+from pydantic_ai.tools import ToolsPrepareFunc
 from pydantic_ai import (
     Agent,
     Tool,
@@ -102,6 +103,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         deps_type: type[BaseModel] = type(None),  # type: ignore
         model: Model | str | None = None,
         tools: list[Tool] = [],
+        prepare_tools: ToolsPrepareFunc[Any] | None = None,
         mcp_servers: list[MCPServer] = [],
         retries: int = 1,
         usage_limits: UsageLimits | None = None,
@@ -137,6 +139,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             ),
             retries=retries,
             tools=tools,
+            prepare_tools=prepare_tools,
             toolsets=mcp_servers,
         )
 
