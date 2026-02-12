@@ -16,7 +16,7 @@ services:
             - llm-agents
 
     llm-agents-redis:
-        image: redis:8.4.0
+        image: redis:8.4.1
         container_name: llm-agents-redis
         volumes:
             - $PWD/resources/cache/redis:/data
@@ -24,7 +24,7 @@ services:
             - llm-agents
 
     llm-agents-mongo:
-        image: mongo:8.2.3
+        image: mongo:8.2.5
         container_name: llm-agents-mongo
         ports:
             - "27017:27017"
@@ -41,7 +41,7 @@ services:
             - llm-agents
 
     llm-agents-ollama:
-        image: ollama/ollama:0.14.0
+        image: ollama/ollama:0.16.1
         container_name: llm-agents-ollama
         deploy:
             resources:

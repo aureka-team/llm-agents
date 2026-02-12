@@ -177,10 +177,16 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         user_content: UserContent | None = None,
     ) -> str:
         cache_key = joblib.hash(
-            (user_prompt, agent_deps, user_content, self.cache_key_suffix)
+            (
+                self.conf.instructions_template,
+                user_prompt,
+                agent_deps,
+                user_content,
+                self.cache_key_suffix,
+            )
         )
-        assert cache_key is not None
 
+        assert cache_key is not None
         return cache_key
 
     async def generate(

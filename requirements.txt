@@ -3,9 +3,9 @@ pycountry>=24.6.1
 pydantic-extra-types>=2.11.0
 
 pymongo>=4.16.0
-logfire[google-genai]>=4.21.0
+logfire[google-genai]>=4.23.0
 
-pydantic-ai==1.48.0
+pydantic-ai==1.58.0
 
 # Aureka packages
-common>=1.1.10
+common>=1.1.13
