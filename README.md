@@ -177,6 +177,19 @@ find-links = [
 ]
 ```
 
+## Releases
+
+Pushing a Git tag matching `v*` creates a new release through [`.github/workflows/python-release.yml`](./.github/workflows/python-release.yml).
+
+Example:
+
+```bash
+git tag v<version>
+git push origin v<version>
+```
+
+The workflow builds the wheel, creates the GitHub release for the tag, and uploads the wheel to both the tag release and the permanent `index` release used by `uv`.
+
 ## Main components
 
 Common starting points:
