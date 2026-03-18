@@ -3,13 +3,13 @@ import asyncio
 
 from tqdm import tqdm
 from itertools import zip_longest
-from typing import TypeVar, Generic, TypeAlias, Literal, Any
+from typing import TypeVar, Generic, TypeAlias, Literal, Any, Sequence
 
 from pydantic_ai.models import Model
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.agent import EventStreamHandler
 from pydantic_ai.tools import ToolsPrepareFunc
+from pydantic_ai.toolsets import AbstractToolset, ToolsetFunc
 from pydantic_ai import (
     Agent,
     Tool,
@@ -87,7 +87,10 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         model: Model | str | None = None,
         tools: list[Tool] = [],
         prepare_tools: ToolsPrepareFunc[Any] | None = None,
-        mcp_servers: list[MCPServer] = [],
+        toolsets: Sequence[
+            AbstractToolset[AgentDeps] | ToolsetFunc[AgentDeps]
+        ]
+        | None = None,
         retries: int = 1,
         usage_limits: UsageLimits | None = None,
         event_stream_handler: EventStreamHandler | None = None,
@@ -123,7 +126,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             retries=retries,
             tools=tools,
             prepare_tools=prepare_tools,
-            toolsets=mcp_servers,
+            toolsets=toolsets,
         )
 
         self.message_history = []

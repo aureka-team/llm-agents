@@ -113,11 +113,11 @@ Main features:
 - Async generation with bounded concurrency and batch execution.
 - Optional Redis-based output caching.
 - Optional MongoDB-backed message history.
-- Support for `pydantic-ai` tools, prepared tools, and MCP servers.
+- Support for `pydantic-ai` tools, prepared tools, and toolsets.
 
 ### Creating a new agent
 
-1. Create a YAML config in [`llm_agents/conf/agents`](./llm_agents/conf/agents) with model settings and an `instructions_template`.
+1. Create an agent package under [`llm_agents/agents`](./llm_agents/agents) and place its YAML config next to the agent module with model settings and an `instructions_template`.
 2. Define a Pydantic output model for the structured response.
 3. If the prompt needs runtime parameters, define a Pydantic deps model and reference its fields in `instructions_template`.
 4. Subclass `LLMAgent` and pass `conf_path`, `output_type`, and optionally `deps_type`, tools, cache, or message history.

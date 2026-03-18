@@ -2,7 +2,7 @@ from pydantic_ai import Tool, ToolOutput
 from pydantic_ai.models import Model
 from pydantic import BaseModel, StrictStr, Field
 
-from llm_agents.conf import agents
+from llm_agents.agents import generic_assistant
 from llm_agents.meta.interfaces import LLMAgent
 from llm_agents.message_history import MongoDBMessageHistory
 
@@ -16,7 +16,7 @@ class GenericAssistantOutput(BaseModel):
 class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
     def __init__(
         self,
-        conf_path: str = f"{list(agents.__path__)[0]}/generic-assistant.yaml",
+        conf_path: str = f"{generic_assistant.__path__[0]}/generic-assistant.yaml",
         model: Model | None = None,
         message_history_length: int = 10,
         mongodb_message_history: MongoDBMessageHistory | None = None,

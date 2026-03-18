@@ -4,7 +4,7 @@ from pydantic import BaseModel, StrictStr, Field
 
 from common.cache import RedisCache
 
-from llm_agents.conf import agents
+from llm_agents.agents import image_describer
 from llm_agents.meta.interfaces import LLMAgent
 
 
@@ -17,14 +17,14 @@ class ImageDescriberOutput(BaseModel):
 class ImageDescriber(LLMAgent[None, ImageDescriberOutput]):
     def __init__(
         self,
-        conf_path=f"{list(agents.__path__)[0]}/image-describer.yaml",
+        conf_path: str = f"{image_describer.__path__[0]}/image-describer.yaml",
         model: Model | None = None,
         max_concurrency: int = 10,
         cache: RedisCache | None = None,
     ):
         super().__init__(
             conf_path=conf_path,
-            output_type=ToolOutput(ImageDescriberOutput),
+            output_type=ToolOutput(ImageDescriberOutput),  # type: ignore
             model=model,
             max_concurrency=max_concurrency,
             cache=cache,

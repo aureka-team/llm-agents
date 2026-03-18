@@ -5,7 +5,7 @@ from pydantic_extra_types.language_code import LanguageName
 
 from common.cache import RedisCache
 
-from llm_agents.conf import agents
+from llm_agents.agents import language_translator
 from llm_agents.meta.interfaces import LLMAgent
 
 
@@ -26,7 +26,9 @@ class LanguageTranslator(
 ):
     def __init__(
         self,
-        conf_path: str = f"{list(agents.__path__)[0]}/language-translator.yaml",
+        conf_path: str = (
+            f"{language_translator.__path__[0]}/language-translator.yaml"
+        ),
         model: Model | None = None,
         max_concurrency: int = 10,
         cache: RedisCache | None = None,
@@ -34,7 +36,7 @@ class LanguageTranslator(
         super().__init__(
             conf_path=conf_path,
             deps_type=LanguageTranslatorDeps,
-            output_type=ToolOutput(LanguageTranslatorOutput),
+            output_type=ToolOutput(LanguageTranslatorOutput),  # type: ignore
             model=model,
             max_concurrency=max_concurrency,
             cache=cache,
