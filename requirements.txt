@@ -1,11 +1,11 @@
-pydantic>=2.12.5
+pydantic>=2.13.2
 pycountry>=26.2.16
 pydantic-extra-types>=2.11.1
 
 pymongo>=4.16.0
-logfire[google-genai]>=4.31.0
+logfire[google-genai]>=4.32.1
 
-pydantic-ai==1.75.0
+pydantic-ai==1.84.1
 
 # Aureka packages
 common>=1.1.13
