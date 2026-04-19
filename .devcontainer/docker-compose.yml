@@ -24,7 +24,7 @@ services:
             - llm-agents
 
     llm-agents-mongo:
-        image: mongo:8.2.5
+        image: mongo:8.2.6
         container_name: llm-agents-mongo
         ports:
             - "27017:27017"

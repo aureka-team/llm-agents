@@ -131,10 +131,6 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         )
 
         self.message_history = []
-        if self.mongodb_message_history is not None:
-            messages = self.mongodb_message_history.get_messages()
-            self.add_history_messages(messages=messages)
-
         self.usage_limits = usage_limits
         self.event_stream_handler = event_stream_handler
 
@@ -200,6 +196,15 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         user_content: UserContent | None = None,
         pbar: tqdm | None = None,
     ) -> AgentOutput:
+        if self.mongodb_message_history is not None and not len(
+            self.message_history
+        ):
+            messages = await self.mongodb_message_history.get_messages()
+            self.add_history_messages(messages=messages)
+            logger.info(
+                f"{len(messages)} messages added to the message_history"
+            )
+
         async with self.semaphore:
             cache_key = self._get_cache_key(
                 user_prompt=user_prompt,
@@ -238,7 +243,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
                 new_messages = agent_run_result.new_messages()
                 self.add_history_messages(messages=new_messages)
                 if self.mongodb_message_history is not None:
-                    self.mongodb_message_history.add_messages(
+                    await self.mongodb_message_history.add_messages(
                         messages=new_messages
                     )
 

@@ -1,6 +1,6 @@
 import os
 
-from pymongo import MongoClient
+from pymongo import AsyncMongoClient
 from common.logger import get_logger
 from datetime import datetime, timezone
 
@@ -23,29 +23,23 @@ class MongoDBMessageHistory:
         mongo_database: str = MONGO_DATABASE,
         mongo_collection: str = "message_history",
     ):
-        self.client = MongoClient(
+        self.client = AsyncMongoClient(
             mongo_dsn,
             serverSelectionTimeoutMS=5000,
             retryWrites=True,
         )
 
         self.db = self.client[mongo_database]
-
         self.session_id = session_id
         self.mongo_collection = mongo_collection
 
-        self.ensure_index()
-
-    def __del__(self) -> None:
-        self.client.close()
-
-    def ensure_index(self) -> None:
-        indexes = self.db[self.mongo_collection].index_information()
+    async def ensure_index(self) -> None:
+        indexes = await self.db[self.mongo_collection].index_information()
         index_name = "session_date_idx"
         if index_name in indexes:
             return
 
-        self.db[self.mongo_collection].create_index(
+        await self.db[self.mongo_collection].create_index(
             [
                 ("session_id", 1),
                 ("date", -1),
@@ -53,7 +47,7 @@ class MongoDBMessageHistory:
             name=index_name,
         )
 
-    def add_messages(self, messages: list[ModelMessage]) -> None:
+    async def add_messages(self, messages: list[ModelMessage]) -> None:
         if not len(messages):
             logger.warning("no messages to store.")
             return
@@ -67,9 +61,9 @@ class MongoDBMessageHistory:
             for m in messages
         ]
 
-        self.db[self.mongo_collection].insert_many(messages)
+        await self.db[self.mongo_collection].insert_many(messages)
 
-    def get_messages(self) -> list[ModelMessage]:
+    async def get_messages(self) -> list[ModelMessage]:
         messages = (
             self.db[self.mongo_collection]
             .find(
@@ -85,5 +79,10 @@ class MongoDBMessageHistory:
         )
 
         return ModelMessagesTypeAdapter.validate_python(
-            reversed(list(messages))
+            reversed(await messages.to_list())
+        )
+
+    async def remove_messages(self) -> None:
+        await self.db[self.mongo_collection].delete_many(
+            {"session_id": self.session_id}
         )
