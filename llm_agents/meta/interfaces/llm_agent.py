@@ -1,13 +1,14 @@
 import joblib
 import asyncio
 
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 from itertools import zip_longest
 from typing import TypeVar, Generic, TypeAlias, Literal, Any, Sequence
 
 from pydantic_ai.models import Model
 from pydantic_ai.settings import ModelSettings
 from pydantic_ai.agent import EventStreamHandler
+from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.tools import ToolsPrepareFunc
 from pydantic_ai.toolsets import AbstractToolset, ToolsetFunc
 from pydantic_ai import (
@@ -87,13 +88,12 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
         model: Model | str | None = None,
         tools: list[Tool] = [],
         prepare_tools: ToolsPrepareFunc[Any] | None = None,
-        toolsets: Sequence[
-            AbstractToolset[AgentDeps] | ToolsetFunc[AgentDeps]
-        ]
+        toolsets: Sequence[AbstractToolset[AgentDeps] | ToolsetFunc[AgentDeps]]
         | None = None,
         retries: int = 1,
         usage_limits: UsageLimits | None = None,
         event_stream_handler: EventStreamHandler | None = None,
+        capabilities: Sequence[AbstractCapability[AgentDeps]] | None = None,
         max_concurrency: int = 10,
         message_history_length: int = 0,  # NOTE: 0 means no history
         mongodb_message_history: MongoDBMessageHistory | None = None,
@@ -127,6 +127,7 @@ class LLMAgent(Generic[AgentDeps, AgentOutput]):
             tools=tools,
             prepare_tools=prepare_tools,
             toolsets=toolsets,
+            capabilities=capabilities,
         )
 
         self.message_history = []
