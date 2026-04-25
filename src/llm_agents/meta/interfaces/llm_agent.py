@@ -58,7 +58,16 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         return Path(file_path).read_text()
 
     async def add_history_messages(self, messages: list[ModelMessage]) -> None:
-        messages = [m for m in messages if m.parts[0].part_kind != "tool-call"]
+        messages = [
+            m
+            for m in messages
+            if m.parts[0].part_kind
+            not in {
+                "tool-call",
+                "tool-return",
+            }
+        ]
+
         assert self.mongodb_message_history is not None
         await self.mongodb_message_history.add_messages(messages=messages)
 
