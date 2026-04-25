@@ -1,1 +1,0 @@
-from .generic_assistant import GenericAssistant, GenericAssistantOutput

@@ -1,18 +1,19 @@
 import os
 
+from rich.console import Console
+
 from pymongo import AsyncMongoClient
-from common.logger import get_logger
 from datetime import datetime, timezone
 
 from pydantic_core import to_jsonable_python
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelMessage
 
 
-logger = get_logger(__name__)
+console = Console()
 
 
-MONGO_DSN = os.getenv("MONGO_DSN", "mongodb://lupai-mongo:27017")
-MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm-agents")
+MONGO_DSN = os.getenv("MONGO_DSN", "mongodb://llm-agents-mongo:27017")
+MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm_agents")
 
 
 class MongoDBMessageHistory:
@@ -22,6 +23,7 @@ class MongoDBMessageHistory:
         mongo_dsn: str = MONGO_DSN,
         mongo_database: str = MONGO_DATABASE,
         mongo_collection: str = "message_history",
+        message_limit: int | None = 10,
     ):
         self.client = AsyncMongoClient(
             mongo_dsn,
@@ -32,6 +34,7 @@ class MongoDBMessageHistory:
         self.db = self.client[mongo_database]
         self.session_id = session_id
         self.mongo_collection = mongo_collection
+        self.message_limit = message_limit
 
     async def ensure_index(self) -> None:
         indexes = await self.db[self.mongo_collection].index_information()
@@ -49,7 +52,7 @@ class MongoDBMessageHistory:
 
     async def add_messages(self, messages: list[ModelMessage]) -> None:
         if not len(messages):
-            logger.warning("no messages to store.")
+            console.log("[yellow]WARNING[/yellow] no messages to store.")
             return
 
         messages = [
@@ -77,6 +80,9 @@ class MongoDBMessageHistory:
             )
             .sort([("date", -1), ("_id", -1)])
         )
+
+        if self.message_limit is not None:
+            messages = messages.limit(self.message_limit)
 
         return ModelMessagesTypeAdapter.validate_python(
             reversed(await messages.to_list())
