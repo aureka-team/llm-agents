@@ -18,7 +18,8 @@ class LanguageDetectorOutput(BaseModel):
 
 
 agent = Agent(
-    "gpt-5.4-2026-03-05",
+    # model="gpt-5.4-2026-03-05",
+    model="gpt-5.4-mini-2026-03-17",
     system_prompt=LLMAgent.read_file(
         file_path=str(Path(__file__).with_name("system-prompt.md"))
     ),

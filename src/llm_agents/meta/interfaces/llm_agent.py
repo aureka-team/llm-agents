@@ -71,18 +71,19 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         *args: Any,
         **kwargs: Any,
     ) -> AgentOutput:
-        output = await self.generate(
-            user_prompt=user_prompt,
-            agent_deps=agent_deps,
-            user_content=user_content,
-            *args,
-            **kwargs,
-        )
+        async with self.semaphore:
+            output = await self.generate(
+                user_prompt=user_prompt,
+                agent_deps=agent_deps,
+                user_content=user_content,
+                *args,
+                **kwargs,
+            )
 
-        if pbar is not None:
-            pbar.update(1)
+            if pbar is not None:
+                pbar.update(1)
 
-        return output
+            return output
 
     @cached(
         cache=Cache.REDIS,
@@ -119,18 +120,19 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         *args: Any,
         **kwargs: Any,
     ) -> AgentOutput:
-        output = await self.generate_cached(
-            user_prompt=user_prompt,
-            agent_deps=agent_deps,
-            user_content=user_content,
-            *args,
-            **kwargs,
-        )
+        async with self.semaphore:
+            output = await self.generate_cached(
+                user_prompt=user_prompt,
+                agent_deps=agent_deps,
+                user_content=user_content,
+                *args,
+                **kwargs,
+            )
 
-        if pbar is not None:
-            pbar.update(1)
+            if pbar is not None:
+                pbar.update(1)
 
-        return output
+            return output
 
     async def batch_generate(
         self,

@@ -1,10 +1,12 @@
-from pydantic_ai import ToolOutput
-from pydantic_ai.models import Model
+from pathlib import Path
+
+from pydantic_ai import Agent
+from pydantic_ai import NativeOutput
+from pydantic_ai.models.openai import OpenAIChatModelSettings
+
 from pydantic import BaseModel, StrictStr, Field
 
-from common.cache import RedisCache
-
-from llm_agents.agents import image_describer
+from llm_agents.meta.schema import UserContent
 from llm_agents.meta.interfaces import LLMAgent
 
 
@@ -14,18 +16,28 @@ class ImageDescriberOutput(BaseModel):
     )
 
 
+agent = Agent(
+    # model="gpt-5.4-2026-03-05",
+    model="gpt-5.4-mini-2026-03-17",
+    system_prompt=LLMAgent.read_file(
+        file_path=str(Path(__file__).with_name("system-prompt.md"))
+    ),
+    output_type=NativeOutput(ImageDescriberOutput),
+    model_settings=OpenAIChatModelSettings(openai_reasoning_effort="none"),
+    retries=3,
+)
+
+
 class ImageDescriber(LLMAgent[None, ImageDescriberOutput]):
-    def __init__(
+    def __init__(self, max_concurrency: int = 10):
+        super().__init__(max_concurrency=max_concurrency)
+
+    async def generate(
         self,
-        conf_path: str = f"{image_describer.__path__[0]}/image-describer.yaml",
-        model: Model | None = None,
-        max_concurrency: int = 10,
-        cache: RedisCache | None = None,
-    ):
-        super().__init__(
-            conf_path=conf_path,
-            output_type=ToolOutput(ImageDescriberOutput),  # type: ignore
-            model=model,
-            max_concurrency=max_concurrency,
-            cache=cache,
-        )
+        user_prompt: str,
+        user_content: UserContent,
+        agent_deps: None = None,
+    ) -> ImageDescriberOutput:
+        result = await agent.run(user_prompt=[user_prompt, user_content])
+
+        return result.output
