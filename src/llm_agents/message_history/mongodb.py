@@ -19,7 +19,7 @@ class MongoDBMessageHistory:
         mongodb_dsn: str = config.mongodb_dsn,
         mongodb_db_name: str = config.mongodb_db_name,
         mongodb_collection: str = config.mongodb_collection,
-        message_limit: int | None = 10,
+        message_limit: int | None = 50,
     ):
         self.client = AsyncMongoClient(
             mongodb_dsn,

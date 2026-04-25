@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from pydantic_ai import Agent
-from pydantic_ai import NativeOutput
-from pydantic_ai.models.openai import OpenAIChatModelSettings
+from pydantic_ai.common_tools.web_fetch import web_fetch_tool
+from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 
 from pydantic import BaseModel, StrictStr, Field
 
@@ -23,22 +23,23 @@ agent = Agent(
     system_prompt=LLMAgent.read_file(
         file_path=str(Path(__file__).with_name("system-prompt.md"))
     ),
-    output_type=NativeOutput(GenericAssistantOutput),
-    model_settings=OpenAIChatModelSettings(openai_reasoning_effort="none"),
+    output_type=GenericAssistantOutput,
     retries=3,
+    tools=[
+        duckduckgo_search_tool(),
+        web_fetch_tool(),
+    ],
 )
 
 
 class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
     def __init__(
         self,
+        mongodb_message_history: MongoDBMessageHistory,
         max_concurrency: int = 10,
-        mongodb_message_history: MongoDBMessageHistory | None = None,
     ):
-        super().__init__(
-            max_concurrency=max_concurrency,
-            mongodb_message_history=mongodb_message_history,
-        )
+        super().__init__(max_concurrency=max_concurrency)
+        self.mongodb_message_history = mongodb_message_history
 
     async def _generate(
         self,
@@ -46,11 +47,14 @@ class GenericAssistant(LLMAgent[None, GenericAssistantOutput]):
         agent_deps: None = None,
         user_content: UserContent | None = None,
     ) -> GenericAssistantOutput:
-        message_history = await self.get_history_messages()
+        message_history = await self.mongodb_message_history.get_messages()
         result = await agent.run(
             user_prompt=user_prompt,
             message_history=message_history,
         )
 
-        await self.add_history_messages(messages=result.new_messages())
+        await self.mongodb_message_history.add_messages(
+            messages=result.new_messages()
+        )
+
         return result.output

@@ -13,11 +13,9 @@ from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel
-from pydantic_ai.messages import ModelMessage
 
 from llm_agents.config import config
 from llm_agents.meta.schema import UserContent
-from llm_agents.message_history import MongoDBMessageHistory
 
 
 AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
@@ -44,36 +42,13 @@ def get_cache_key(
 
 
 class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
-    def __init__(
-        self,
-        max_concurrency: int = 10,
-        mongodb_message_history: MongoDBMessageHistory | None = None,
-    ):
-        self.mongodb_message_history = mongodb_message_history
+    def __init__(self, max_concurrency: int = 10):
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
     @lru_cache()
     @staticmethod
     def read_file(file_path: str) -> str:
         return Path(file_path).read_text()
-
-    async def add_history_messages(self, messages: list[ModelMessage]) -> None:
-        messages = [
-            m
-            for m in messages
-            if m.parts[0].part_kind
-            not in {
-                "tool-call",
-                "tool-return",
-            }
-        ]
-
-        assert self.mongodb_message_history is not None
-        await self.mongodb_message_history.add_messages(messages=messages)
-
-    async def get_history_messages(self) -> list[ModelMessage]:
-        assert self.mongodb_message_history is not None
-        return await self.mongodb_message_history.get_messages()
 
     @abstractmethod
     async def _generate(
