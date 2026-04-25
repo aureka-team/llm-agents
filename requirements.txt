@@ -1,7 +1,7 @@
-joblib==1.5.3
+joblib>=1.5.3
 pymongo>=4.17.0
 pycountry>=26.2.16
-aiocache[redis]==0.12.3
+aiocache[redis]>=0.12.3
 
 logfire>=4.32.1
 pydantic>=2.13.3
