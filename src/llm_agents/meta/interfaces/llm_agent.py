@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel
-from pydantic_ai.messages import ModelMessage, ToolReturnPart
+from pydantic_ai.messages import ModelMessage
 
 from llm_agents.config import config
 from llm_agents.meta.schema import UserContent
@@ -58,15 +58,7 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         return Path(file_path).read_text()
 
     async def add_history_messages(self, messages: list[ModelMessage]) -> None:
-        messages = [
-            m
-            for m in messages
-            if not isinstance(
-                m.parts[0],
-                ToolReturnPart,
-            )
-        ]
-
+        messages = [m for m in messages if m.parts[0].part_kind != "tool-call"]
         assert self.mongodb_message_history is not None
         await self.mongodb_message_history.add_messages(messages=messages)
 
