@@ -126,10 +126,9 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
 
     @cached(
         cache=Cache.REDIS,
-        endpoint=config.redis.host,
-        port=config.redis.port,
-        db=config.redis.db,
-        namespace=config.redis.namespace,
+        endpoint=config.redis_host,
+        port=config.redis_port,
+        db=config.redis_db,
         serializer=PickleSerializer(),
         key_builder=get_cache_key,
         noself=True,

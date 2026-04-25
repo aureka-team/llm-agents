@@ -1,16 +1,11 @@
-from pydantic import Field, StrictInt, StrictStr
+from pydantic import StrictInt, StrictStr
 from pydantic_settings import BaseSettings
 
 
-class RedisConf(BaseSettings):
-    host: StrictStr = "llm-agents-redis"
-    port: StrictInt = 6379
-    db: StrictInt = 0
-    namespace: StrictStr = "llm-agents"
-
-
 class Config(BaseSettings):
-    redis: RedisConf = Field(default_factory=RedisConf)
+    redis_host: StrictStr = "llm-agents-redis"
+    redis_port: StrictInt = 6379
+    redis_db: StrictInt = 0
 
 
 config = Config()
