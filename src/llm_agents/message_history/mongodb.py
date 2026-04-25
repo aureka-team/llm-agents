@@ -1,5 +1,3 @@
-import os
-
 from rich.console import Console
 
 from pymongo import AsyncMongoClient
@@ -8,41 +6,39 @@ from datetime import datetime, timezone
 from pydantic_core import to_jsonable_python
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelMessage
 
+from llm_agents.config import config
+
 
 console = Console()
-
-
-MONGO_DSN = os.getenv("MONGO_DSN", "mongodb://llm-agents-mongo:27017")
-MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm_agents")
 
 
 class MongoDBMessageHistory:
     def __init__(
         self,
         session_id: str,
-        mongo_dsn: str = MONGO_DSN,
-        mongo_database: str = MONGO_DATABASE,
-        mongo_collection: str = "message_history",
+        mongodb_dsn: str = config.mongodb_dsn,
+        mongodb_db_name: str = config.mongodb_db_name,
+        mongodb_collection: str = config.mongodb_collection,
         message_limit: int | None = 10,
     ):
         self.client = AsyncMongoClient(
-            mongo_dsn,
+            mongodb_dsn,
             serverSelectionTimeoutMS=5000,
             retryWrites=True,
         )
 
-        self.db = self.client[mongo_database]
+        self.db = self.client[mongodb_db_name]
         self.session_id = session_id
-        self.mongo_collection = mongo_collection
+        self.mongodb_collection = mongodb_collection
         self.message_limit = message_limit
 
     async def ensure_index(self) -> None:
-        indexes = await self.db[self.mongo_collection].index_information()
+        indexes = await self.db[self.mongodb_collection].index_information()
         index_name = "session_date_idx"
         if index_name in indexes:
             return
 
-        await self.db[self.mongo_collection].create_index(
+        await self.db[self.mongodb_collection].create_index(
             [
                 ("session_id", 1),
                 ("date", -1),
@@ -64,11 +60,11 @@ class MongoDBMessageHistory:
             for m in messages
         ]
 
-        await self.db[self.mongo_collection].insert_many(messages)
+        await self.db[self.mongodb_collection].insert_many(messages)
 
     async def get_messages(self) -> list[ModelMessage]:
         messages = (
-            self.db[self.mongo_collection]
+            self.db[self.mongodb_collection]
             .find(
                 {
                     "session_id": self.session_id,
@@ -89,6 +85,6 @@ class MongoDBMessageHistory:
         )
 
     async def remove_messages(self) -> None:
-        await self.db[self.mongo_collection].delete_many(
+        await self.db[self.mongodb_collection].delete_many(
             {"session_id": self.session_id}
         )
