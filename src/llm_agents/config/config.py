@@ -6,7 +6,7 @@ class RedisConf(BaseSettings):
     host: StrictStr = "llm-agents-redis"
     port: StrictInt = 6379
     db: StrictInt = 0
-    namespace: StrictStr = "cmi_utils"
+    namespace: StrictStr = "llm-agents"
 
 
 class Config(BaseSettings):

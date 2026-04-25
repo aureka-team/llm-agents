@@ -33,12 +33,11 @@ class LanguageDetector(LLMAgent[None, LanguageDetectorOutput]):
     def __init__(self, max_concurrency: int = 10):
         super().__init__(max_concurrency=max_concurrency)
 
-    async def generate(
+    async def _generate(
         self,
         user_prompt: str,
         agent_deps: None = None,
         user_content: UserContent | None = None,
     ) -> LanguageDetectorOutput:
         result = await agent.run(user_prompt=user_prompt)
-
         return result.output

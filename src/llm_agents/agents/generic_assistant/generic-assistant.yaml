@@ -1,7 +1,0 @@
-model: openai:gpt-4o-mini-2024-07-18
-max_tokens: 256
-temperature: 0.7
-
-instructions_template: >-
-    As a very helpful and knowledgeable assistant, provide the best possible answer to the given user's query.
-    Ensure that the response is clear, concise, and directly addresses the user's query.

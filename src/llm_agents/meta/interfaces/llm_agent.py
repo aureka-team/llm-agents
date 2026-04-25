@@ -13,9 +13,11 @@ from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel
+from pydantic_ai.messages import ModelMessage, ToolReturnPart
 
 from llm_agents.config import config
 from llm_agents.meta.schema import UserContent
+from llm_agents.message_history import MongoDBMessageHistory
 
 
 AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
@@ -42,8 +44,12 @@ def get_cache_key(
 
 
 class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
-    def __init__(self, max_concurrency: int = 10):
-        self.message_history = []
+    def __init__(
+        self,
+        max_concurrency: int = 10,
+        mongodb_message_history: MongoDBMessageHistory | None = None,
+    ):
+        self.mongodb_message_history = mongodb_message_history
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
     @lru_cache()
@@ -51,8 +57,25 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
     def read_file(file_path: str) -> str:
         return Path(file_path).read_text()
 
+    async def add_history_messages(self, messages: list[ModelMessage]) -> None:
+        messages = [
+            m
+            for m in messages
+            if not isinstance(
+                m.parts[0],
+                ToolReturnPart,
+            )
+        ]
+
+        assert self.mongodb_message_history is not None
+        await self.mongodb_message_history.add_messages(messages=messages)
+
+    async def get_history_messages(self) -> list[ModelMessage]:
+        assert self.mongodb_message_history is not None
+        return await self.mongodb_message_history.get_messages()
+
     @abstractmethod
-    async def generate(
+    async def _generate(
         self,
         user_prompt: str,
         agent_deps: AgentDeps | None = None,
@@ -61,6 +84,22 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         **kwargs: Any,
     ) -> AgentOutput:
         pass
+
+    async def generate(
+        self,
+        user_prompt: str,
+        agent_deps: AgentDeps | None = None,
+        user_content: UserContent | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> AgentOutput:
+        return await self._generate(
+            user_prompt=user_prompt,
+            agent_deps=agent_deps,
+            user_content=user_content,
+            *args,
+            **kwargs,
+        )
 
     async def generate_pbar(
         self,

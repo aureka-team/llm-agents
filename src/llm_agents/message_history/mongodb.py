@@ -13,7 +13,7 @@ console = Console()
 
 
 MONGO_DSN = os.getenv("MONGO_DSN", "mongodb://llm-agents-mongo:27017")
-MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm-agents")
+MONGO_DATABASE = os.getenv("MONGO_DATABASE", "llm_agents")
 
 
 class MongoDBMessageHistory:
@@ -23,6 +23,7 @@ class MongoDBMessageHistory:
         mongo_dsn: str = MONGO_DSN,
         mongo_database: str = MONGO_DATABASE,
         mongo_collection: str = "message_history",
+        message_limit: int | None = 10,
     ):
         self.client = AsyncMongoClient(
             mongo_dsn,
@@ -33,6 +34,7 @@ class MongoDBMessageHistory:
         self.db = self.client[mongo_database]
         self.session_id = session_id
         self.mongo_collection = mongo_collection
+        self.message_limit = message_limit
 
     async def ensure_index(self) -> None:
         indexes = await self.db[self.mongo_collection].index_information()
@@ -64,7 +66,7 @@ class MongoDBMessageHistory:
 
         await self.db[self.mongo_collection].insert_many(messages)
 
-    async def get_messages(self, limit: int | None = 10) -> list[ModelMessage]:
+    async def get_messages(self) -> list[ModelMessage]:
         messages = (
             self.db[self.mongo_collection]
             .find(
@@ -79,8 +81,8 @@ class MongoDBMessageHistory:
             .sort([("date", -1), ("_id", -1)])
         )
 
-        if limit is not None:
-            messages = messages.limit(limit)
+        if self.message_limit is not None:
+            messages = messages.limit(self.message_limit)
 
         return ModelMessagesTypeAdapter.validate_python(
             reversed(await messages.to_list())

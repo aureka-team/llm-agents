@@ -45,7 +45,7 @@ class LanguageTranslator(
     def __init__(self, max_concurrency: int = 10):
         super().__init__(max_concurrency=max_concurrency)
 
-    async def generate(
+    async def _generate(
         self,
         user_prompt: str,
         agent_deps: LanguageTranslatorDeps,

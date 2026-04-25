@@ -14,7 +14,7 @@ from .image_describer.image_describer import (  # noqa
     ImageDescriberOutput,
 )
 
-# from .generic_assistant import (  # noqa
-#     GenericAssistant,
-#     GenericAssistantOutput,
-# )
+from .generic_assistant.generic_assistant import (  # noqa
+    GenericAssistant,
+    GenericAssistantOutput,
+)
