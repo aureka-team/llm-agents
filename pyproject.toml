@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 requires-python = ">=3.11"
 name = "llm_agents"
 dynamic = ["version", "dependencies"]
-description = "LLM Experts"
+description = "LLM Agents"
 readme = "README.md"
 authors = [{ name = "Bas", email = "bastiansg.bas@gmail.com" }]
 license = { file = "LICENSE" }
@@ -16,10 +16,17 @@ classifiers = [
     "Programming Language :: Python :: 3",
 ]
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+
 [tool.setuptools.packages.find]
-include = ["llm_agents"]
+where = ["src"]
+include = ["llm_agents*"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 
 [tool.setuptools_scm]
+
+[tool.setuptools.package-data]
+"cmi_utils" = ["conf/*", "agents/**/*.md"]
