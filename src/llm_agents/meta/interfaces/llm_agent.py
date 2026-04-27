@@ -7,15 +7,17 @@ from pathlib import Path
 from aiocache import Cache, cached
 from aiocache.serializers import PickleSerializer
 
+from abc import ABC
 from functools import lru_cache
 from itertools import zip_longest
-from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel
+from pydantic_ai import Agent
 
 from llm_agents.config import config
 from llm_agents.meta.schema import UserContent
+from llm_agents.message_history import MongoDBMessageHistory
 
 
 AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
@@ -42,24 +44,34 @@ def get_cache_key(
 
 
 class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
-    def __init__(self, max_concurrency: int = 10):
+    def __init__(
+        self,
+        agent: Agent[AgentDeps, AgentOutput],
+        mongodb_message_history: MongoDBMessageHistory | None = None,
+        max_concurrency: int = 10,
+    ):
+
+        if (
+            mongodb_message_history is not None
+            and agent._output_schema.mode
+            in {
+                "auto",
+                "tool",
+            }
+        ):
+            assert mongodb_message_history.save_tool_messages, (
+                "output_type can not be ToolOutput when "
+                "mongodb_message_history.save_tool_messages is false"
+            )
+
+        self.agent = agent
+        self.mongodb_message_history = mongodb_message_history
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
     @lru_cache()
     @staticmethod
     def read_file(file_path: str) -> str:
         return Path(file_path).read_text()
-
-    @abstractmethod
-    async def _generate(
-        self,
-        user_prompt: str,
-        agent_deps: AgentDeps | None = None,
-        user_content: UserContent | None = None,
-        *args: Any,
-        **kwargs: Any,
-    ) -> AgentOutput:
-        pass
 
     async def generate(
         self,
@@ -69,13 +81,30 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         *args: Any,
         **kwargs: Any,
     ) -> AgentOutput:
-        return await self._generate(
+
+        if user_content is not None:
+            user_prompt = [user_prompt, user_content]  # type: ignore
+
+        message_history = (
+            await self.mongodb_message_history.get_messages()
+            if self.mongodb_message_history is not None
+            else None
+        )
+
+        result = await self.agent.run(  # type: ignore
             user_prompt=user_prompt,
-            agent_deps=agent_deps,
-            user_content=user_content,
+            deps=agent_deps,
+            message_history=message_history,
             *args,
             **kwargs,
         )
+
+        if self.mongodb_message_history is not None:
+            await self.mongodb_message_history.add_messages(
+                messages=result.new_messages()
+            )
+
+        return result.output
 
     async def generate_pbar(
         self,

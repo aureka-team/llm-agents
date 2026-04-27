@@ -4,6 +4,7 @@ from pymongo import AsyncMongoClient
 from datetime import datetime, timezone
 
 from pydantic_core import to_jsonable_python
+from pydantic_ai.messages import ToolCallPart, ToolReturnPart
 from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelMessage
 
 from llm_agents.config import config
@@ -20,6 +21,7 @@ class MongoDBMessageHistory:
         mongodb_db_name: str = config.mongodb_db_name,
         mongodb_collection: str = config.mongodb_collection,
         message_limit: int | None = 50,
+        save_tool_messages: bool = False,
     ):
         self.client = AsyncMongoClient(
             mongodb_dsn,
@@ -31,6 +33,7 @@ class MongoDBMessageHistory:
         self.session_id = session_id
         self.mongodb_collection = mongodb_collection
         self.message_limit = message_limit
+        self.save_tool_messages = save_tool_messages
 
     async def ensure_index(self) -> None:
         indexes = await self.db[self.mongodb_collection].index_information()
@@ -46,10 +49,31 @@ class MongoDBMessageHistory:
             name=index_name,
         )
 
+    @staticmethod
+    def filter_tool_message(message: ModelMessage) -> bool:
+        message_part = message.parts[0]
+        if isinstance(
+            message_part,
+            ToolCallPart,
+        ) or isinstance(
+            message_part,
+            ToolReturnPart,
+        ):
+            return False
+
+        return True
+
     async def add_messages(self, messages: list[ModelMessage]) -> None:
         if not len(messages):
             console.log("[yellow]WARNING[/yellow] no messages to store.")
             return
+
+        if not self.save_tool_messages:
+            messages = [
+                message
+                for message in messages
+                if self.filter_tool_message(message=message)
+            ]
 
         messages = [
             {
@@ -62,7 +86,7 @@ class MongoDBMessageHistory:
 
         await self.db[self.mongodb_collection].insert_many(messages)
 
-    async def get_messages(self) -> list[ModelMessage]:
+    async def get_messages(self) -> list[ModelMessage] | None:
         messages = (
             self.db[self.mongodb_collection]
             .find(
@@ -80,9 +104,11 @@ class MongoDBMessageHistory:
         if self.message_limit is not None:
             messages = messages.limit(self.message_limit)
 
-        return ModelMessagesTypeAdapter.validate_python(
-            reversed(await messages.to_list())
-        )
+        messages = await messages.to_list()
+        if not len(messages):
+            return
+
+        return ModelMessagesTypeAdapter.validate_python(reversed(messages))
 
     async def remove_messages(self) -> None:
         await self.db[self.mongodb_collection].delete_many(

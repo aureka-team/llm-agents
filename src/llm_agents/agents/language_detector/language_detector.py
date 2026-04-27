@@ -7,7 +7,6 @@ from pydantic_ai.models.openai import OpenAIChatModelSettings
 from pydantic import BaseModel, Field
 from pydantic_extra_types.language_code import LanguageAlpha2
 
-from llm_agents.meta.schema import UserContent
 from llm_agents.meta.interfaces import LLMAgent
 
 
@@ -31,13 +30,7 @@ agent = Agent(
 
 class LanguageDetector(LLMAgent[None, LanguageDetectorOutput]):
     def __init__(self, max_concurrency: int = 10):
-        super().__init__(max_concurrency=max_concurrency)
-
-    async def _generate(
-        self,
-        user_prompt: str,
-        agent_deps: None = None,
-        user_content: UserContent | None = None,
-    ) -> LanguageDetectorOutput:
-        result = await agent.run(user_prompt=user_prompt)
-        return result.output
+        super().__init__(
+            agent=agent,
+            max_concurrency=max_concurrency,
+        )

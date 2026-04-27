@@ -6,7 +6,6 @@ from pydantic_ai.models.openai import OpenAIChatModelSettings
 
 from pydantic import BaseModel, StrictStr, Field
 
-from llm_agents.meta.schema import UserContent
 from llm_agents.meta.interfaces import LLMAgent
 
 
@@ -30,14 +29,7 @@ agent = Agent(
 
 class ImageDescriber(LLMAgent[None, ImageDescriberOutput]):
     def __init__(self, max_concurrency: int = 10):
-        super().__init__(max_concurrency=max_concurrency)
-
-    async def _generate(
-        self,
-        user_prompt: str,
-        user_content: UserContent,
-        agent_deps: None = None,
-    ) -> ImageDescriberOutput:
-        result = await agent.run(user_prompt=[user_prompt, user_content])
-
-        return result.output
+        super().__init__(
+            agent=agent,
+            max_concurrency=max_concurrency,
+        )
