@@ -1,5 +1,6 @@
 {
     "name": "llm-agents",
+    "initializeCommand": "make devcontainer-build",
     "dockerComposeFile": "docker-compose.yml",
     "service": "llm-agents-devcontainer",
     "runServices": ["llm-agents-devcontainer"],

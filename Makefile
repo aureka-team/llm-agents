@@ -2,6 +2,7 @@
 
 
 devcontainer-build:
+	[ -f .env ] || touch .env
 	docker compose -f .devcontainer/docker-compose.yml build llm-agents-devcontainer
 
 
