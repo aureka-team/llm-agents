@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydantic_ai import Agent, NativeOutput
+from pydantic_ai.capabilities import ReinjectSystemPrompt
 from pydantic_ai.common_tools.web_fetch import web_fetch_tool
 from pydantic_ai.common_tools.duckduckgo import duckduckgo_search_tool
 
@@ -28,6 +29,7 @@ agent = Agent(  # type: ignore
         duckduckgo_search_tool(),
         web_fetch_tool(),
     ],
+    capabilities=[ReinjectSystemPrompt()],
 )
 
 

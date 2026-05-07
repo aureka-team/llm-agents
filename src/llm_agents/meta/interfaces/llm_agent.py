@@ -14,6 +14,7 @@ from typing import Any, TypeVar, Generic
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import ReinjectSystemPrompt
 
 from llm_agents.config import config
 from llm_agents.meta.schema import UserContent
@@ -51,6 +52,12 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         max_concurrency: int = 10,
     ):
 
+        if mongodb_message_history is not None:
+            assert self.has_reinject_system_prompt(agent=agent), (
+                "Agent must define capabilities=[ReinjectSystemPrompt()] "
+                "when mongodb_message_history is provided"
+            )
+
         if (
             mongodb_message_history is not None
             and agent._output_schema.mode
@@ -72,6 +79,20 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
     @staticmethod
     def read_file(file_path: str) -> str:
         return Path(file_path).read_text()
+
+    @staticmethod
+    def has_reinject_system_prompt(
+        agent: Agent[AgentDeps, AgentOutput],
+    ) -> bool:
+        has_capability = False
+
+        def visit_capability(capability: Any) -> None:
+            nonlocal has_capability
+            if isinstance(capability, ReinjectSystemPrompt):
+                has_capability = True
+
+        agent._root_capability.apply(visit_capability)
+        return has_capability
 
     async def generate(
         self,

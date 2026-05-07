@@ -5,7 +5,11 @@ from datetime import datetime, timezone
 
 from pydantic_core import to_jsonable_python
 from pydantic_ai.messages import ToolCallPart, ToolReturnPart
-from pydantic_ai.messages import ModelMessagesTypeAdapter, ModelMessage
+from pydantic_ai.messages import (
+    ModelMessagesTypeAdapter,
+    ModelMessage,
+    ModelRequest,
+)
 
 from llm_agents.config import config
 
@@ -63,6 +67,34 @@ class MongoDBMessageHistory:
 
         return True
 
+    @staticmethod
+    def trim_to_last_turns(
+        messages: list[ModelMessage],
+        turn_limit: int | None,
+    ) -> list[ModelMessage]:
+        if turn_limit is None:
+            return messages
+
+        if turn_limit <= 0:
+            return []
+
+        request_indexes = [
+            index
+            for index, message in enumerate(messages)
+            if isinstance(message, ModelRequest)
+        ]
+
+        if not request_indexes:
+            return []
+
+        start_index = request_indexes[max(0, len(request_indexes) - turn_limit)]
+        trimmed_messages = messages[start_index:]
+
+        if trimmed_messages and isinstance(trimmed_messages[-1], ModelRequest):
+            return trimmed_messages[:-1]
+
+        return trimmed_messages
+
     async def add_messages(self, messages: list[ModelMessage]) -> None:
         if not len(messages):
             console.log("[yellow]WARNING[/yellow] no messages to store.")
@@ -101,14 +133,18 @@ class MongoDBMessageHistory:
             .sort([("date", -1), ("_id", -1)])
         )
 
-        if self.message_limit is not None:
-            messages = messages.limit(self.message_limit)
-
         messages = await messages.to_list()
         if not len(messages):
             return
 
-        return ModelMessagesTypeAdapter.validate_python(reversed(messages))
+        model_messages = ModelMessagesTypeAdapter.validate_python(
+            reversed(messages)
+        )
+
+        return self.trim_to_last_turns(
+            messages=model_messages,
+            turn_limit=self.message_limit,
+        )
 
     async def remove_messages(self) -> None:
         await self.db[self.mongodb_collection].delete_many(
