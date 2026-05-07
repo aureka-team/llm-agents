@@ -26,6 +26,7 @@ class MongoDBMessageHistory:
         mongodb_collection: str = config.mongodb_collection,
         message_limit: int | None = 50,
         save_tool_messages: bool = False,
+        read_only: bool = False,
     ):
         self.client = AsyncMongoClient(
             mongodb_dsn,
@@ -38,6 +39,7 @@ class MongoDBMessageHistory:
         self.mongodb_collection = mongodb_collection
         self.message_limit = message_limit
         self.save_tool_messages = save_tool_messages
+        self.read_only = read_only
 
     async def ensure_index(self) -> None:
         indexes = await self.db[self.mongodb_collection].index_information()
@@ -96,6 +98,9 @@ class MongoDBMessageHistory:
         return trimmed_messages
 
     async def add_messages(self, messages: list[ModelMessage]) -> None:
+        if self.read_only:
+            return
+
         if not len(messages):
             console.log("[yellow]WARNING[/yellow] no messages to store.")
             return
