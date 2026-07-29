@@ -1,25 +1,21 @@
-import joblib
 import asyncio
-
-from tqdm import tqdm  # type: ignore
-from pathlib import Path
-
-from aiocache import Cache, cached
-from aiocache.serializers import PickleSerializer
-
 from abc import ABC
 from functools import lru_cache
 from itertools import zip_longest
-from typing import Any, TypeVar, Generic
+from pathlib import Path
+from typing import Any, Generic, TypeVar
 
+import joblib
+from aiocache import Cache, cached
+from aiocache.serializers import PickleSerializer
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.capabilities import ReinjectSystemPrompt
+from tqdm import tqdm  # type: ignore
 
 from llm_agents.config import config
-from llm_agents.meta.schema import UserContent
 from llm_agents.message_history import MongoDBMessageHistory
-
+from llm_agents.meta.schema import UserContent
 
 AgentDeps = TypeVar("AgentDeps", bound=BaseModel | None)
 AgentOutput = TypeVar("AgentOutput", bound=BaseModel)
@@ -53,7 +49,7 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
     ):
 
         if mongodb_message_history is not None:
-            assert self.has_reinject_system_prompt(agent=agent), (
+            assert self.configure_reinject_system_prompt(agent=agent), (
                 "Agent must define capabilities=[ReinjectSystemPrompt()] "
                 "when mongodb_message_history is provided"
             )
@@ -75,13 +71,13 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
         self.mongodb_message_history = mongodb_message_history
         self.semaphore = asyncio.Semaphore(max_concurrency)
 
-    @lru_cache()
+    @lru_cache
     @staticmethod
     def read_file(file_path: str) -> str:
         return Path(file_path).read_text()
 
     @staticmethod
-    def has_reinject_system_prompt(
+    def configure_reinject_system_prompt(
         agent: Agent[AgentDeps, AgentOutput],
     ) -> bool:
         has_capability = False
@@ -90,6 +86,7 @@ class LLMAgent(ABC, Generic[AgentDeps, AgentOutput]):
             nonlocal has_capability
             if isinstance(capability, ReinjectSystemPrompt):
                 has_capability = True
+                capability.replace_existing = True
 
         agent._root_capability.apply(visit_capability)
         return has_capability
